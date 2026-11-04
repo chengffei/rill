@@ -110,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .full, .paused, .assisting: mark = .plug; watts = s.inputWatts
         case .onBattery: mark = .none; watts = -s.batteryWatts
         }
-        let symbol = BatteryGlyph.symbolName(percent: s.percent, mark: mark)
+        let symbol = BatteryGlyph.key(percent: s.percent, mark: mark)
         let title = showsPower ? " " + PowerFormat.watts(watts) : ""
         // Redraw the menu bar only when what it shows changes.
         guard symbol != shownSymbol || title != shownTitle else { return }

@@ -31,3 +31,4 @@
 - 11-04 0.3.0 Dashboard。ImageRenderer 画不出 ScrollView 内容和 AppKit 分段控件，截图用 scrolls: false；真实窗口用 screencapture -l 窗口号核对过。温度图不填色，否则面积图把 y 轴拉到 0。
 - 11-04 菜单栏主体改为自绘电池图形（BatteryGlyph：外框加按电量填充，充电显示闪电，插电保持显示插头，光晕只切在电池内部）；右键「在菜单栏显示实时功率」开关，存 UserDefaults showsPower，默认开。
 - 11-04 菜单栏电池改为纯 SF Symbols（Felix 要求尽量用原生）：battery.0/25/50/75/100percent 按最近一档，充电用 battery.100percent.bolt。macOS 27 上这些符号不支持 variableValue，100percent 是实心整块，带闪电的只有满格一种，所以自绘填充和叠加闪电都试过后放弃；悬停提示显示精确百分比。
+- 11-04 菜单栏电池第三版（Felix 嫌纯 SF Symbols 小、不精致，给了 AlDente 原生风参考）：自绘 25.5×13 外框（40% 透明）加精确填充，标记用系统 bolt.fill、powerplug.portrait.fill；镂空用 CIMorphologyMaximum 把符号均匀外扩 1.3pt（8 倍渲染）后 destinationOut，并只裁在电池内部。之前两次失败：偏移 8 次叠画会出锯齿残影；用更粗更大的符号当镂空，形状不同心会切歪。
