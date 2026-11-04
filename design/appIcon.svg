@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><!-- Joule app icon: power flows in along dashes and fills a battery with a bolt. -->
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECECF1"/></linearGradient>
+<linearGradient id="fill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2E8BFF"/><stop offset="1" stop-color="#34C759"/></linearGradient>
+<clipPath id="sq"><rect x="100" y="100" width="824" height="824" rx="184" ry="184"/></clipPath>
+<clipPath id="cell"><rect x="372" y="372" width="364" height="280" rx="34"/></clipPath>
+</defs>
+<rect x="100" y="100" width="824" height="824" rx="184" ry="184" fill="url(#bg)"/>
+<g clip-path="url(#sq)"><g transform="translate(-24 0)">
+<!-- incoming flow -->
+<g fill="#2E8BFF"><rect x="146" y="494" width="44" height="36" rx="18" opacity=".35"/><rect x="208" y="494" width="44" height="36" rx="18" opacity=".6"/><rect x="270" y="494" width="44" height="36" rx="18" opacity=".9"/></g>
+<!-- battery body -->
+<rect x="352" y="352" width="404" height="320" rx="56" fill="#fff" stroke="#1D1D1F" stroke-width="28"/>
+<rect x="776" y="452" width="40" height="120" rx="18" fill="#1D1D1F"/>
+<g clip-path="url(#cell)"><rect x="372" y="372" width="364" height="280" fill="url(#fill)"/></g>
+<!-- bolt -->
+<path d="M 588 398 L 476 532 H 548 L 520 626 L 632 488 H 560 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>
+</g></g></svg>

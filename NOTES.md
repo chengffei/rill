@@ -15,3 +15,4 @@
 
 ## 记录
 - 11-04 首次装好后菜单栏看不到图标：JOULE_DEBUG 显示按钮窗口高度 0，被系统或 Dimble 收起。需要在 Dimble 或「系统设置 → 菜单栏」里放出来。
+- 11-04 加图标：design/appIcon.svg（虚线流入、渐变电池、闪电，呼应面板的能量流），scripts/generate-icon.sh 生成 Resources/AppIcon.icns。
