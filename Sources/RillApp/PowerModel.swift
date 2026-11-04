@@ -1,5 +1,5 @@
 import Foundation
-import JouleCore
+import RillCore
 
 /// Samples the battery on a timer and keeps the last ten minutes.
 @MainActor

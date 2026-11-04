@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "Joule",
+    name: "Rill",
     platforms: [.macOS(.v14)],
     targets: [
-        .target(name: "JouleCore", path: "Sources/JouleCore", linkerSettings: [.linkedFramework("IOKit")]),
-        .executableTarget(name: "JouleApp", dependencies: ["JouleCore"], path: "Sources/JouleApp"),
-        .testTarget(name: "JouleCoreTests", dependencies: ["JouleCore"], path: "Tests/JouleCoreTests")
+        .target(name: "RillCore", path: "Sources/RillCore", linkerSettings: [.linkedFramework("IOKit")]),
+        .executableTarget(name: "RillApp", dependencies: ["RillCore"], path: "Sources/RillApp"),
+        .testTarget(name: "RillCoreTests", dependencies: ["RillCore"], path: "Tests/RillCoreTests")
     ]
 )

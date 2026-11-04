@@ -1,5 +1,5 @@
 import XCTest
-@testable import JouleCore
+@testable import RillCore
 
 final class PowerSnapshotTests: XCTestCase {
     /// Values from a real M1 Pro on a 67 W adapter, fully charged (2026-11-04).

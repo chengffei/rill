@@ -1,4 +1,4 @@
-import JouleCore
+import RillCore
 import SwiftUI
 
 /// Charger → Mac ⇄ battery, with moving dashes where power flows.

@@ -1,5 +1,5 @@
 import Charts
-import JouleCore
+import RillCore
 import SwiftUI
 
 enum Palette {

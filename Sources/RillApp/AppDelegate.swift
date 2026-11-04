@@ -1,5 +1,5 @@
 import AppKit
-import JouleCore
+import RillCore
 import ServiceManagement
 import SwiftUI
 
@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         model.onUpdate = { [weak self] in self?.updateStatusItem($0) }
         model.start()
-        if ProcessInfo.processInfo.environment["JOULE_DEBUG"] != nil {
+        if ProcessInfo.processInfo.environment["RILL_DEBUG"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                 let w = self?.statusItem.button?.window
                 print("status item frame=\(w?.frame ?? .zero) visible=\(w?.isVisible ?? false) occluded=\(w.map { !$0.occlusionState.contains(.visible) } ?? true) isVisible=\(self?.statusItem.isVisible ?? false)")
@@ -34,8 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Debug: JOULE_SNAPSHOT=/path.png renders the panel after a few samples and quits.
-        if let path = ProcessInfo.processInfo.environment["JOULE_SNAPSHOT"] {
+        // Debug: RILL_SNAPSHOT=/path.png renders the panel after a few samples and quits.
+        if let path = ProcessInfo.processInfo.environment["RILL_SNAPSHOT"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [model] in
                 let renderer = ImageRenderer(content: PopoverView(model: model).environment(\.colorScheme, .light))
                 renderer.scale = 2
@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "退出 Joule", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "退出 Rill", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try SMAppService.mainApp.register()
             }
         } catch {
-            NSLog("Joule login item: \(error)")
+            NSLog("Rill login item: \(error)")
         }
     }
 }
