@@ -8,6 +8,12 @@ import RillCore
 final class PowerModel: ObservableObject {
     @Published private(set) var snapshot: PowerSnapshot?
     @Published private(set) var history = PowerHistory(window: 10 * 60)
+    /// Minute records for the last 7 days plus the minute in progress.
+    @Published private(set) var minutes: [MinuteRecord] = []
+
+    private let store = HistoryStore(directory: ProcessInfo.processInfo.environment["RILL_HISTORY_DIR"].map { URL(fileURLWithPath: $0) })
+    private var aggregator = MinuteAggregator(interval: 2)
+    private var savedMinutes: [MinuteRecord] = []
 
     private var latest: PowerSnapshot?
     private var latestHistory = PowerHistory(window: 10 * 60)
@@ -17,13 +23,15 @@ final class PowerModel: ObservableObject {
     private var timer: Timer?
     private var smoothed: LiveReading?
 
-    /// Set by the app delegate while the popover is shown.
-    var isVisible = false {
-        didSet { if isVisible { publish() } }
-    }
+    /// Set by the app delegate while the popover or the Dashboard is shown.
+    var popoverVisible = false { didSet { if isVisible { publish() } } }
+    var dashboardVisible = false { didSet { if isVisible { publish() } } }
+    var isVisible: Bool { popoverVisible || dashboardVisible }
     var onUpdate: ((PowerSnapshot?) -> Void)?
 
     func start(interval: TimeInterval = 2) {
+        store.prune()
+        savedMinutes = store.load(since: Date().addingTimeInterval(-7 * 86400))
         sample()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.sample() }
@@ -45,7 +53,17 @@ final class PowerModel: ObservableObject {
             s?.date = now
         }
         latest = s
-        if let s { latestHistory.append(s) }
+        if let s {
+            latestHistory.append(s)
+            if let done = aggregator.add(s) {
+                store.append(done)
+                savedMinutes.append(done)
+                let cutoff = now.addingTimeInterval(-7 * 86400)
+                if let first = savedMinutes.first, first.t < cutoff {
+                    savedMinutes.removeAll { $0.t < cutoff }
+                }
+            }
+        }
         if isVisible { publish() }
         onUpdate?(s)
     }
@@ -69,5 +87,8 @@ final class PowerModel: ObservableObject {
     private func publish() {
         snapshot = latest
         history = latestHistory
+        if dashboardVisible {
+            minutes = savedMinutes + (aggregator.partial().map { [$0] } ?? [])
+        }
     }
 }

@@ -9,10 +9,14 @@
 - 数据全部来自 AppleSmartBattery 注册表，普通权限可读：PowerTelemetryData 的 SystemPowerIn、SystemLoad、AdapterEfficiencyLoss、SystemVoltageIn、SystemCurrentIn；电池功率 = Voltage × InstantAmperage；AdapterDetails 给充电器名、额定与协商电压电流。
 - 0.2 起功率走 SMC：PDTR 充电器输入、PSTR 整机负载、B0AV×B0AC 电池功率（B0AC 充电为正）、TB0T 温度，每 2 秒一次；电量百分比、充电器信息、容量仍读注册表，10 秒缓存。读不到 SMC 时退回注册表。
 
+- 0.3 Dashboard 窗口：面板底部「打开 Dashboard」、右键菜单、Finder 或 Spotlight 再次打开 Rill 都会打开它。内容：电量与能量流、电池、充电器、今日用电四块，功率曲线（1 小时、6 小时、24 小时、7 天，悬停看读数），电量与温度曲线。
+- 历史：每分钟一条均值写 `~/Library/Application Support/Rill/history/日期.jsonl`，保留 30 天，启动时载入 7 天。曲线超过 360 点按时间桶平均。今日用电按每条记录覆盖的秒数加权。
+
 ## 命令
 - `scripts/bundle.sh --install`：release 构建、签名、装进 /Applications 并启动。
 - `swift test`：解析与历史窗口测试（需 Xcode 工具链，脚本已设 DEVELOPER_DIR）。
-- `RILL_SNAPSHOT=/path.png .build/release/RillApp`：7 秒后把面板渲染成 PNG 并退出。
+- `RILL_SNAPSHOT=/path.png .build/release/RillApp`：7 秒后把面板渲染成 PNG 并退出；加 `RILL_SNAPSHOT_DASHBOARD=1` 渲染 Dashboard（不带滚动，分段控件画成黄条是渲染器限制）。
+- `RILL_HISTORY_DIR=目录`：历史改存到这个目录，调试用，别和正在运行的 Rill 共用真实目录。
 - `RILL_DEBUG=1`：2 秒后打印状态栏按钮窗口 frame；菜单栏每次变化打印读数。
 - `RILL_SMC_DUMP=/path.txt swift test --filter SMCDiscovery`：列出 P、B、D、TB 开头的 SMC 键及 4 秒内是否变化。
 - `RILL_SMC_CAL=/path.txt swift test --filter SMCCalibration`：逐秒采 130 秒，与注册表每分钟的值对比。
@@ -24,3 +28,4 @@
 - 11-04 SMC 字节序：Apple 芯片上 flt 与 ui16、si16、ui32 都是小端（B0AV 原始 0x31C9 → 12745 mV，与注册表 12757 对上）；#KEY 计数是大端。
 - 11-04 PDTR 与 PSTR 响应速度不同，负载变化时 PSTR 可比 PDTR 高 4 W；60 秒均值二者相差 0.02 W。PowerModel 对输入、负载、电流取相邻两次平均，插拔时不平均。
 - 11-04 性能：后台平均 CPU 约 1.0%（注册表版约 0.9–1.7%），内存 17 MB。4 秒抽样里 SMC 读取约 2 ms，主要开销是菜单栏重画；面板关闭时不推送界面数据，菜单栏文字不变不重画，图标不变不重设。想再省可把菜单栏改成整数瓦。
+- 11-04 0.3.0 Dashboard。ImageRenderer 画不出 ScrollView 内容和 AppKit 分段控件，截图用 scrolls: false；真实窗口用 screencapture -l 窗口号核对过。温度图不填色，否则面积图把 y 轴拉到 0。

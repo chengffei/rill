@@ -15,6 +15,7 @@ enum Palette {
 
 struct PopoverView: View {
     @ObservedObject var model: PowerModel
+    var onOpenDashboard: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -23,6 +24,18 @@ struct PopoverView: View {
                 FlowView(snapshot: s)
                 chart
                 details(s)
+                Divider()
+                Button(action: onOpenDashboard) {
+                    HStack {
+                        Text("打开 Dashboard")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Palette.input)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             } else {
                 Text("这台 Mac 没有读到电池")
                     .foregroundStyle(Palette.secondary)

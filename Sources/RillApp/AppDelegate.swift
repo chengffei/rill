@@ -8,8 +8,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = PowerModel()
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
+    private var dashboard: NSWindow?
     private var shownSymbol = ""
     private var shownTitle = ""
+
+    /// Launching Rill again (Finder, Spotlight) opens the Dashboard; there is no Dock icon.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openDashboard()
+        return false
+    }
+
+    func openDashboard() {
+        if dashboard == nil {
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 860),
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                             backing: .buffered, defer: false)
+            w.title = "Rill"
+            w.appearance = NSAppearance(named: .aqua)
+            w.isReleasedWhenClosed = false
+            w.contentViewController = NSHostingController(rootView: DashboardView(model: model))
+            w.setContentSize(NSSize(width: 1040, height: 860))
+            w.center()
+            w.setFrameAutosaveName("RillDashboard")
+            w.delegate = self
+            dashboard = w
+        }
+        model.dashboardVisible = true
+        NSApp.activate(ignoringOtherApps: true)
+        dashboard?.makeKeyAndOrderFront(nil)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -25,7 +52,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.animates = false
         // Light only, like the rest of Felix's tools.
         popover.appearance = NSAppearance(named: .aqua)
-        popover.contentViewController = NSHostingController(rootView: PopoverView(model: model))
+        popover.contentViewController = NSHostingController(rootView: PopoverView(model: model, onOpenDashboard: { [weak self] in
+            self?.popover.performClose(nil)
+            self?.openDashboard()
+        }))
 
         model.onUpdate = { [weak self] in self?.updateStatusItem($0) }
         model.start()
@@ -37,11 +67,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Debug: RILL_SNAPSHOT=/path.png renders the panel after a few samples and quits.
+        // Debug: RILL_SNAPSHOT=/path.png renders the panel (RILL_SNAPSHOT_DASHBOARD=1 the
+        // Dashboard) after a few samples and quits.
         if let path = ProcessInfo.processInfo.environment["RILL_SNAPSHOT"] {
-            model.isVisible = true
+            let dash = ProcessInfo.processInfo.environment["RILL_SNAPSHOT_DASHBOARD"] != nil
+            model.popoverVisible = true
+            model.dashboardVisible = dash
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [model] in
-                let renderer = ImageRenderer(content: PopoverView(model: model).environment(\.colorScheme, .light))
+                let content = dash
+                    ? AnyView(DashboardView(model: model, scrolls: false).frame(width: 1040))
+                    : AnyView(PopoverView(model: model, onOpenDashboard: {}))
+                let renderer = ImageRenderer(content: content.environment(\.colorScheme, .light))
                 renderer.scale = 2
                 if let cg = renderer.cgImage {
                     let rep = NSBitmapImageRep(cgImage: cg)
@@ -95,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if popover.isShown {
             popover.performClose(sender)
         } else {
-            model.isVisible = true
+            model.popoverVisible = true
             popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
         }
@@ -103,6 +139,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
+        let open = NSMenuItem(title: "打开 Dashboard", action: #selector(openDashboardFromMenu), keyEquivalent: "")
+        open.target = self
+        menu.addItem(open)
+        menu.addItem(.separator())
         let login = NSMenuItem(title: "开机启动", action: #selector(toggleLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
@@ -113,6 +153,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
     }
+
+    @objc private func openDashboardFromMenu() { openDashboard() }
 
     @objc private func toggleLogin() {
         do {
@@ -129,6 +171,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSPopoverDelegate {
     func popoverDidClose(_ notification: Notification) {
-        model.isVisible = false
+        model.popoverVisible = false
     }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        if (notification.object as? NSWindow) === dashboard { model.dashboardVisible = false }
+    }
+
+    func windowDidMiniaturize(_ notification: Notification) { model.dashboardVisible = false }
+    func windowDidDeminiaturize(_ notification: Notification) { model.dashboardVisible = true }
 }
