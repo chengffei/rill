@@ -108,3 +108,43 @@ final class PowerSnapshotTests: XCTestCase {
         XCTAssertEqual(PowerFormat.duration(minutes: 25), "25 分")
     }
 }
+
+final class MergeTests: XCTestCase {
+    private func base(external: Bool = true, percent: Int = 80, state: PowerSnapshot.State = .paused) -> PowerSnapshot {
+        PowerSnapshot(percent: percent, state: state, externalConnected: external, inputWatts: 0, systemWatts: 0,
+                      batteryWatts: 0, lossWatts: 0, batteryVolts: 12.7, batteryAmps: 0)
+    }
+
+    func testChargingFromLiveCurrent() {
+        let s = base().merging(LiveReading(inputWatts: 45, systemWatts: 14, batteryVolts: 12.5, batteryAmps: 2.4, temperature: 33))
+        XCTAssertEqual(s.state, .charging)
+        XCTAssertEqual(s.batteryWatts, 30, accuracy: 0.001)
+        XCTAssertEqual(s.lossWatts, 1, accuracy: 0.001)
+        XCTAssertEqual(s.temperature, 33)
+    }
+
+    func testAdapterTooWeakDrawsOnBattery() {
+        let s = base().merging(LiveReading(inputWatts: 20, systemWatts: 30, batteryVolts: 12, batteryAmps: -0.9, temperature: nil))
+        XCTAssertEqual(s.state, .assisting)
+        XCTAssertEqual(s.lossWatts, 0)
+    }
+
+    func testUnplugged() {
+        let s = base(external: false).merging(LiveReading(inputWatts: 0, systemWatts: 12, batteryVolts: 12, batteryAmps: -1, temperature: nil))
+        XCTAssertEqual(s.state, .onBattery)
+        XCTAssertEqual(s.inputWatts, 0)
+        XCTAssertEqual(s.batteryWatts, -12, accuracy: 0.001)
+    }
+
+    /// The registry can still say "unplugged" for a minute after plugging in.
+    func testLiveInputMeansPluggedIn() {
+        let s = base(external: false).merging(LiveReading(inputWatts: 30, systemWatts: 12, batteryVolts: 12.5, batteryAmps: 1.4, temperature: nil))
+        XCTAssertTrue(s.externalConnected)
+        XCTAssertEqual(s.state, .charging)
+    }
+
+    func testFullAtHundred() {
+        let s = base(percent: 100, state: .full).merging(LiveReading(inputWatts: 17, systemWatts: 16, batteryVolts: 12.7, batteryAmps: 0, temperature: nil))
+        XCTAssertEqual(s.state, .full)
+    }
+}

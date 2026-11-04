@@ -5,7 +5,7 @@ import IOKit
 /// Built from the AppleSmartBattery registry entry, which any user can read.
 public struct PowerSnapshot: Equatable, Sendable {
     public enum State: Equatable, Sendable {
-        case charging, full, paused, onBattery
+        case charging, full, paused, onBattery, assisting
     }
 
     public var date: Date
@@ -35,6 +35,8 @@ public struct PowerSnapshot: Equatable, Sendable {
     public var cycleCount: Int?
     public var designCapacity: Int?
     public var fullChargeCapacity: Int?
+    /// Battery temperature in °C, only from the SMC.
+    public var temperature: Double?
     /// Minutes, nil while macOS is still estimating.
     public var minutesToFull: Int?
     public var minutesToEmpty: Int?

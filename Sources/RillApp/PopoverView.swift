@@ -61,6 +61,7 @@ struct PopoverView: View {
         case .full: return "已充满"
         case .paused: return "暂停充电"
         case .onBattery: return "使用电池"
+        case .assisting: return "充电器不够，电池补电"
         }
     }
 
@@ -142,6 +143,7 @@ struct PopoverView: View {
             if let h = s.health, let full = s.fullChargeCapacity, let design = s.designCapacity {
                 row("健康度", String(format: "%.0f%%", h * 100) + "（\(full) / \(design) mAh）")
             }
+            if let t = s.temperature { row("电池温度", String(format: "%.1f °C", t)) }
             if let c = s.cycleCount { row("循环次数", "\(c)") }
         }
     }
