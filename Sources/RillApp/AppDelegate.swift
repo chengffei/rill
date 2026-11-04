@@ -88,7 +88,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var showsPower: Bool {
+        get { UserDefaults.standard.object(forKey: "showsPower") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "showsPower") }
+    }
+    private var lastSnapshot: PowerSnapshot?
+
     private func updateStatusItem(_ s: PowerSnapshot?) {
+        lastSnapshot = s
         guard let button = statusItem.button else { return }
         guard let s else {
             button.image = NSImage(systemSymbolName: "bolt.slash", accessibilityDescription: nil)
@@ -96,14 +103,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             shownSymbol = ""
             return
         }
-        let symbol: String
+        let mark: BatteryGlyph.Mark
         let watts: Double
         switch s.state {
-        case .charging: symbol = "bolt.fill"; watts = s.inputWatts
-        case .full, .paused, .assisting: symbol = "powerplug.fill"; watts = s.inputWatts
-        case .onBattery: symbol = "battery.75percent"; watts = -s.batteryWatts
+        case .charging: mark = .bolt; watts = s.inputWatts
+        case .full, .paused, .assisting: mark = .plug; watts = s.inputWatts
+        case .onBattery: mark = .none; watts = -s.batteryWatts
         }
-        let title = " " + PowerFormat.watts(watts)
+        let symbol = "\(s.percent)-\(mark)"
+        let title = showsPower ? " " + PowerFormat.watts(watts) : ""
         // Redraw the menu bar only when what it shows changes.
         guard symbol != shownSymbol || title != shownTitle else { return }
         let symbolChanged = symbol != shownSymbol
@@ -114,11 +122,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             fflush(stdout)
         }
         if symbolChanged {
-            let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
-                .withSymbolConfiguration(.init(pointSize: 12, weight: .medium))
-            image?.isTemplate = true
-            button.image = image
+            button.image = BatteryGlyph.image(percent: s.percent, mark: mark)
+            button.toolTip = "\(s.percent)%"
         }
+        button.imagePosition = title.isEmpty ? .imageOnly : .imageLeading
         button.attributedTitle = NSAttributedString(
             string: title,
             attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)]
@@ -143,6 +150,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
+        let power = NSMenuItem(title: "在菜单栏显示实时功率", action: #selector(toggleShowsPower), keyEquivalent: "")
+        power.target = self
+        power.state = showsPower ? .on : .off
+        menu.addItem(power)
         let login = NSMenuItem(title: "开机启动", action: #selector(toggleLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
@@ -155,6 +166,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openDashboardFromMenu() { openDashboard() }
+
+    @objc private func toggleShowsPower() {
+        showsPower.toggle()
+        shownTitle = "\u{0}"
+        updateStatusItem(lastSnapshot)
+    }
 
     @objc private func toggleLogin() {
         do {
