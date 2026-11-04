@@ -30,3 +30,4 @@
 - 11-04 性能：后台平均 CPU 约 1.0%（注册表版约 0.9–1.7%），内存 17 MB。4 秒抽样里 SMC 读取约 2 ms，主要开销是菜单栏重画；面板关闭时不推送界面数据，菜单栏文字不变不重画，图标不变不重设。想再省可把菜单栏改成整数瓦。
 - 11-04 0.3.0 Dashboard。ImageRenderer 画不出 ScrollView 内容和 AppKit 分段控件，截图用 scrolls: false；真实窗口用 screencapture -l 窗口号核对过。温度图不填色，否则面积图把 y 轴拉到 0。
 - 11-04 菜单栏主体改为自绘电池图形（BatteryGlyph：外框加按电量填充，充电显示闪电，插电保持显示插头，光晕只切在电池内部）；右键「在菜单栏显示实时功率」开关，存 UserDefaults showsPower，默认开。
+- 11-04 菜单栏电池改为纯 SF Symbols（Felix 要求尽量用原生）：battery.0/25/50/75/100percent 按最近一档，充电用 battery.100percent.bolt。macOS 27 上这些符号不支持 variableValue，100percent 是实心整块，带闪电的只有满格一种，所以自绘填充和叠加闪电都试过后放弃；悬停提示显示精确百分比。

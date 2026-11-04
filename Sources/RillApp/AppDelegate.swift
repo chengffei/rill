@@ -110,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .full, .paused, .assisting: mark = .plug; watts = s.inputWatts
         case .onBattery: mark = .none; watts = -s.batteryWatts
         }
-        let symbol = "\(s.percent)-\(mark)"
+        let symbol = BatteryGlyph.symbolName(percent: s.percent, mark: mark)
         let title = showsPower ? " " + PowerFormat.watts(watts) : ""
         // Redraw the menu bar only when what it shows changes.
         guard symbol != shownSymbol || title != shownTitle else { return }
@@ -121,9 +121,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             print("menu bar \(symbol)\(title) system=\(PowerFormat.watts(s.systemWatts)) battery=\(s.batteryWatts) temp=\(s.temperature ?? -1) state=\(s.state)")
             fflush(stdout)
         }
+        button.toolTip = "\(s.percent)%"
         if symbolChanged {
             button.image = BatteryGlyph.image(percent: s.percent, mark: mark)
-            button.toolTip = "\(s.percent)%"
+
         }
         button.imagePosition = title.isEmpty ? .imageOnly : .imageLeading
         button.attributedTitle = NSAttributedString(
