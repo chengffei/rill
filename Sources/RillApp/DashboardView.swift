@@ -13,10 +13,10 @@ struct DashboardView: View {
             if scrolls { ScrollView { content } } else { content }
         }
         .frame(minWidth: 920, minHeight: 640)
-        .background(Color.white)
     }
 
     private var content: some View {
+        GlassEffectContainer(spacing: 16) {
             VStack(alignment: .leading, spacing: 20) {
                 if let s = model.snapshot {
                     hero(s)
@@ -38,7 +38,11 @@ struct DashboardView: View {
                         .frame(maxWidth: .infinity, minHeight: 300)
                 }
             }
-            .padding(28)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 28)
+            // Clears the transparent title bar and its traffic lights.
+            .padding(.top, 44)
+        }
     }
 
     // MARK: Hero
@@ -61,6 +65,7 @@ struct DashboardView: View {
             .frame(width: 200, alignment: .leading)
             FlowView(snapshot: s)
                 .frame(maxWidth: .infinity)
+                .glassCard()
         }
     }
 
@@ -134,7 +139,7 @@ struct DashboardView: View {
                 .frame(height: 260)
         }
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Palette.panel))
+        .glassCard()
     }
 
     private func stateText(_ s: PowerSnapshot) -> String {
@@ -183,7 +188,7 @@ private struct Card<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, minHeight: 230, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Palette.panel))
+        .glassCard()
     }
 }
 
@@ -254,7 +259,7 @@ private struct PowerChart: View {
                             .font(.system(size: 11).monospacedDigit())
                             .foregroundStyle(Palette.text)
                             .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white))
+                            .glassEffect(.regular, in: .rect(cornerRadius: 10))
                         }
                 }
             }
@@ -329,6 +334,6 @@ private struct SeriesCard: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Palette.panel))
+        .glassCard()
     }
 }

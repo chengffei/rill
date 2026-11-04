@@ -32,3 +32,4 @@
 - 11-04 菜单栏主体改为自绘电池图形（BatteryGlyph：外框加按电量填充，充电显示闪电，插电保持显示插头，光晕只切在电池内部）；右键「在菜单栏显示实时功率」开关，存 UserDefaults showsPower，默认开。
 - 11-04 菜单栏电池改为纯 SF Symbols（Felix 要求尽量用原生）：battery.0/25/50/75/100percent 按最近一档，充电用 battery.100percent.bolt。macOS 27 上这些符号不支持 variableValue，100percent 是实心整块，带闪电的只有满格一种，所以自绘填充和叠加闪电都试过后放弃；悬停提示显示精确百分比。
 - 11-04 菜单栏电池第三版（Felix 嫌纯 SF Symbols 小、不精致，给了 AlDente 原生风参考）：自绘 25.5×13 外框（40% 透明）加精确填充，标记用系统 bolt.fill、powerplug.portrait.fill；镂空用 CIMorphologyMaximum 把符号均匀外扩 1.3pt（8 倍渲染）后 destinationOut，并只裁在电池内部。之前两次失败：偏移 8 次叠画会出锯齿残影；用更粗更大的符号当镂空，形状不同心会切歪。
+- 11-04 Liquid Glass（Felix 要求面板和主界面符合 Apple 新玻璃风格）：最低系统提到 macOS 26（swift-tools 6.2，语言模式仍 v5）。卡片统一 glassCard()（glassEffect .regular，18pt 圆角），外层 GlassEffectContainer；面板按钮 .buttonStyle(.glass)；Dashboard 透明标题栏加 fullSizeContentView，内容顶部留 44pt 让开红绿灯。文字改语义色（primary、secondary），固定灰在玻璃上对比度不够。面板玻璃会透出桌面，深色壁纸下整体偏灰，属系统行为。截图用 RILL_OPEN_POPOVER=1 启动后 screencapture -l（ImageRenderer 画不出玻璃）。

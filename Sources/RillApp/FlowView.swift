@@ -17,9 +17,8 @@ struct FlowView: View {
                  watts: abs(snapshot.batteryWatts) > 0.05 ? abs(snapshot.batteryWatts) : 0,
                  tint: batteryColor)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .padding(.horizontal, 8)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Palette.panel))
     }
 
     private var batteryDirection: FlowLink.Direction {

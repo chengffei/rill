@@ -3,10 +3,11 @@ import RillCore
 import SwiftUI
 
 enum Palette {
-    static let text = Color(red: 0x1d / 255, green: 0x1d / 255, blue: 0x1f / 255)
-    static let secondary = Color(red: 0x42 / 255, green: 0x42 / 255, blue: 0x45 / 255)
-    static let caption = Color(red: 0x6e / 255, green: 0x6e / 255, blue: 0x73 / 255)
-    static let panel = Color(red: 0xf5 / 255, green: 0xf5 / 255, blue: 0xf7 / 255)
+    // Semantic label colors: on Liquid Glass they pick up vibrancy and stay
+    // legible over whatever is behind the panel; fixed greys did not.
+    static let text = Color.primary
+    static let secondary = Color.secondary
+    static let caption = Color.secondary
     static let input = Color(red: 0.0, green: 0.48, blue: 1.0)
     static let system = Color(red: 0.35, green: 0.34, blue: 0.84)
     static let charge = Color(red: 0.20, green: 0.70, blue: 0.35)
@@ -18,33 +19,33 @@ struct PopoverView: View {
     var onOpenDashboard: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        GlassEffectContainer(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             if let s = model.snapshot {
                 header(s)
                 FlowView(snapshot: s)
+                    .glassCard()
                 chart
                 details(s)
-                Divider()
+                    .padding(14)
+                    .glassCard()
                 Button(action: onOpenDashboard) {
-                    HStack {
-                        Text("打开 Dashboard")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                    }
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Palette.input)
-                    .contentShape(Rectangle())
+                    Label("打开 Dashboard", systemImage: "chart.xyaxis.line")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 3)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .controlSize(.large)
             } else {
                 Text("这台 Mac 没有读到电池")
                     .foregroundStyle(Palette.secondary)
                     .frame(maxWidth: .infinity, minHeight: 120)
             }
         }
-        .padding(16)
+        }
+        .padding(14)
         .frame(width: 360)
-        .background(Color.white)
     }
 
     // MARK: Header
@@ -132,8 +133,8 @@ struct PopoverView: View {
             .chartLegend(position: .bottom, spacing: 6)
             .frame(height: 120)
         }
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.panel))
+        .padding(14)
+        .glassCard()
     }
 
     // MARK: Details

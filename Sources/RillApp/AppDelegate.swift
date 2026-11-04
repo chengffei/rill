@@ -21,9 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func openDashboard() {
         if dashboard == nil {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 860),
-                             styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
             w.title = "Rill"
+            w.titlebarAppearsTransparent = true
+            w.toolbarStyle = .unified
             w.appearance = NSAppearance(named: .aqua)
             w.isReleasedWhenClosed = false
             w.contentViewController = NSHostingController(rootView: DashboardView(model: model))
@@ -59,6 +61,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         model.onUpdate = { [weak self] in self?.updateStatusItem($0) }
         model.start()
+        // Debug: RILL_OPEN_POPOVER=1 opens the panel after launch, for screenshots.
+        if ProcessInfo.processInfo.environment["RILL_OPEN_POPOVER"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                guard let self, let button = self.statusItem.button else { return }
+                self.statusItemClicked(button)
+            }
+        }
         if ProcessInfo.processInfo.environment["RILL_DEBUG"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                 let w = self?.statusItem.button?.window
