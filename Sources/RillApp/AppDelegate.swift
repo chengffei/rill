@@ -54,12 +54,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.animates = false
         // Light only, like the rest of Felix's tools.
         popover.appearance = NSAppearance(named: .aqua)
-        popover.contentViewController = NSHostingController(rootView: PopoverView(model: model, onOpenDashboard: { [weak self] in
+        let hosting = NSHostingController(rootView: PopoverView(model: model, onOpenDashboard: { [weak self] in
             self?.popover.performClose(nil)
             self?.openDashboard()
         }))
+        // Size the popover ourselves. Letting SwiftUI resize it after it was
+        // shown grew the window upward from its bottom edge, pushing the top
+        // 260 pt off screen (2026-11-04).
+        hosting.sizingOptions = []
+        popover.contentViewController = hosting
 
-        model.onUpdate = { [weak self] in self?.updateStatusItem($0) }
+        model.onUpdate = { [weak self] in
+            self?.updateStatusItem($0)
+            self?.fitPopover()
+        }
         model.start()
         // Debug: RILL_OPEN_POPOVER=1 opens the panel after launch, for screenshots.
         if ProcessInfo.processInfo.environment["RILL_OPEN_POPOVER"] != nil {
@@ -142,6 +150,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    /// Matches the popover to its content's height, measured before showing
+    /// and after each update while open.
+    private func fitPopover(force: Bool = false) {
+        guard force || popover.isShown,
+              let hosting = popover.contentViewController as? NSHostingController<PopoverView> else { return }
+        // fittingSize squeezes the chart and rows to their minimum; ask
+        // SwiftUI for the ideal height at the panel's fixed width instead.
+        let size = hosting.sizeThatFits(in: NSSize(width: 360, height: 2000))
+        guard size.height > 0, abs(size.height - popover.contentSize.height) > 0.5 || abs(size.width - popover.contentSize.width) > 0.5 else { return }
+        popover.contentSize = size
+    }
+
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         if NSApp.currentEvent?.type == .rightMouseUp {
             showMenu()
@@ -149,6 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             popover.performClose(sender)
         } else {
             model.popoverVisible = true
+            fitPopover(force: true)
             popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
         }

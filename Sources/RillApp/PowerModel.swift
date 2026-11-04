@@ -53,6 +53,10 @@ final class PowerModel: ObservableObject {
             s?.date = now
         }
         latest = s
+        // The panel's size depends on the snapshot (adapter rows come and go),
+        // so keep it current even while closed; the popover is sized from it
+        // before it opens. Only the heavier history waits for visibility.
+        if snapshot != s { snapshot = s }
         if let s {
             latestHistory.append(s)
             if let done = aggregator.add(s) {
