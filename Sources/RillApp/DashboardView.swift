@@ -48,26 +48,38 @@ struct DashboardView: View {
 
     // MARK: Hero
 
+    /// Battery status and the power flow in one card, so the status no
+    /// longer floats unanchored beside the flow (Felix, 2026-11-05).
     private func hero(_ s: PowerSnapshot) -> some View {
-        HStack(alignment: .center, spacing: 28) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                BatteryGauge(percent: s.percent, state: s.state)
+                    .padding(.bottom, 6)
                 Text("\(s.percent)%")
-                    .font(.system(size: 48, weight: .semibold).monospacedDigit())
+                    .font(.system(size: 30, weight: .semibold).monospacedDigit())
                     .foregroundStyle(Palette.text)
                 Text(stateText(s))
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.secondary)
                 if let m = s.minutesToFull {
-                    Text("\(PowerFormat.duration(minutes: m))充满").font(.system(size: 13)).foregroundStyle(Palette.caption)
+                    Text("\(PowerFormat.duration(minutes: m))充满")
+                        .font(.system(size: 12)).foregroundStyle(Palette.caption)
                 } else if let m = s.minutesToEmpty {
-                    Text("剩余 \(PowerFormat.duration(minutes: m))").font(.system(size: 13)).foregroundStyle(Palette.caption)
+                    Text("剩余 \(PowerFormat.duration(minutes: m))")
+                        .font(.system(size: 12)).foregroundStyle(Palette.caption)
                 }
             }
-            .frame(width: 200, alignment: .leading)
+            .frame(width: 170, alignment: .leading)
+            .padding(.leading, 22)
+            Rectangle()
+                .fill(Color.primary.opacity(0.08))
+                .frame(width: 1)
+                .padding(.vertical, 22)
             FlowView(snapshot: s, height: 170)
                 .frame(maxWidth: .infinity)
-                .glassCard()
+                .padding(.leading, 6)
         }
+        .glassCard()
     }
 
     // MARK: Cards

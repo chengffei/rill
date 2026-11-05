@@ -40,3 +40,4 @@
 - 11-05 NSViewRepresentable 的 updateNSView 早于视图排版、bounds 为 0，图层尺寸要在 layout() 里再设一次，否则带子不显示。
 - 11-05 大量耗电的应用（Felix 参考 AlDente「Using Significant Energy」）：proc_pid_rusage(RUSAGE_INFO_V6).ri_energy_nj 读每个进程的 CPU 能耗（普通权限可读用户自己的进程，本机 780 个进程里 548 个；root 进程读不到，本就不是 app；GPU 能耗系统不按进程给）。按 responsibility_get_pid_responsible_for_pid（dlsym）归到责任 app，VS Code 终端里跑的进程和 Helper 都算 Code，同活动监视器。每 4 秒读一次，指数平滑时间常数 20 秒。阈值：≥ 1 W 进入、< 0.7 W 才退出（本机日常各 app 0.0–0.3 W，整机 10–20 W）。面板在能量流下一行显示最多 3 个（名字、瓦数、图标），Dashboard 加「耗电应用」卡列前 5 名。验证：终端 yes 跑满一核，Code 显示 3.4–3.8 W 并标为大量耗电；打开 Dashboard 时 Rill 自身 CPU 约 2%。RILL_OPEN_POPOVER=秒数 可延迟弹出。
 - 11-05 我在测试命令里误带了一条 System Events 的 ⌘W 模拟按键，发给了当时最前面的 app，已告知 Felix。教训：截图验证只用 screencapture 和窗口列表，不发任何模拟按键或点击。
+- 11-05 Dashboard 顶部重排（Felix：悬空的「100% 已充满」很突兀）：电池状态与能量流合进同一张玻璃卡，左侧 BatteryGauge（按电量精确填充，充电闪电、插电插头，静态无动画）加 30pt 百分比、状态、时间，细分隔线，右侧能量流；原来 48pt 大字悬在白底上、无容器、与卡片不对齐。
