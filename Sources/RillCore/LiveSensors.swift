@@ -5,7 +5,8 @@ import Foundation
 public struct LiveReading: Equatable, Sendable {
     /// PDTR: power in from the adapter, watts.
     public var inputWatts: Double
-    /// PSTR: power the whole Mac draws, watts.
+    /// PSTR: SMC's whole-system power. Kept for reference; the Mac's draw is
+    /// derived from input and battery (see `merging`).
     public var systemWatts: Double
     /// B0AV / B0AC: battery voltage and current, positive while charging.
     public var batteryVolts: Double
@@ -51,11 +52,18 @@ extension PowerSnapshot {
         // Live input decides: the registry lags plugging and unplugging by up to a minute.
         s.externalConnected = live.inputWatts > 0.5
         s.inputWatts = s.externalConnected ? live.inputWatts : 0
-        s.systemWatts = live.systemWatts
         s.batteryVolts = live.batteryVolts
         s.batteryAmps = live.batteryAmps
         s.batteryWatts = live.batteryVolts * live.batteryAmps
-        s.lossWatts = s.externalConnected ? max(0, s.inputWatts - s.systemWatts - max(0, s.batteryWatts)) : 0
+        // The Mac's own draw is what comes in minus what goes into the battery,
+        // the same definition as the registry's SystemLoad (SystemPowerIn −
+        // BatteryPower, exact to the mW on 2026-11-05). PSTR settles at a
+        // different speed than PDTR, so adding it to the battery overshot
+        // the input by up to 4 W. On battery the Mac draws what the battery gives.
+        s.systemWatts = s.externalConnected ? max(0, s.inputWatts - s.batteryWatts) : max(0, -s.batteryWatts)
+        // Conversion loss is not derivable from these; keep the registry's
+        // AdapterEfficiencyLoss (updated once a minute).
+        s.lossWatts = s.externalConnected ? lossWatts : 0
         s.temperature = live.temperature
         if !s.externalConnected {
             s.state = .onBattery

@@ -63,7 +63,7 @@ struct DashboardView: View {
                 }
             }
             .frame(width: 200, alignment: .leading)
-            FlowView(snapshot: s)
+            FlowView(snapshot: s, height: 170)
                 .frame(maxWidth: .infinity)
                 .glassCard()
         }

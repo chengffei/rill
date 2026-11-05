@@ -119,14 +119,17 @@ final class MergeTests: XCTestCase {
         let s = base().merging(LiveReading(inputWatts: 45, systemWatts: 14, batteryVolts: 12.5, batteryAmps: 2.4, temperature: 33))
         XCTAssertEqual(s.state, .charging)
         XCTAssertEqual(s.batteryWatts, 30, accuracy: 0.001)
-        XCTAssertEqual(s.lossWatts, 1, accuracy: 0.001)
+        // Mac = input − battery, whatever PSTR says.
+        XCTAssertEqual(s.systemWatts, 15, accuracy: 0.001)
+        XCTAssertEqual(s.inputWatts, s.systemWatts + s.batteryWatts, accuracy: 0.001)
+        XCTAssertEqual(s.lossWatts, 0, "loss comes from the registry, not derived")
         XCTAssertEqual(s.temperature, 33)
     }
 
     func testAdapterTooWeakDrawsOnBattery() {
         let s = base().merging(LiveReading(inputWatts: 20, systemWatts: 30, batteryVolts: 12, batteryAmps: -0.9, temperature: nil))
         XCTAssertEqual(s.state, .assisting)
-        XCTAssertEqual(s.lossWatts, 0)
+        XCTAssertEqual(s.systemWatts, 30.8, accuracy: 0.001)
     }
 
     func testUnplugged() {
@@ -134,6 +137,7 @@ final class MergeTests: XCTestCase {
         XCTAssertEqual(s.state, .onBattery)
         XCTAssertEqual(s.inputWatts, 0)
         XCTAssertEqual(s.batteryWatts, -12, accuracy: 0.001)
+        XCTAssertEqual(s.systemWatts, 12, accuracy: 0.001)
     }
 
     /// The registry can still say "unplugged" for a minute after plugging in.

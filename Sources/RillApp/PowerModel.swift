@@ -72,10 +72,9 @@ final class PowerModel: ObservableObject {
         onUpdate?(s)
     }
 
-    /// PDTR and PSTR settle at different speeds, so under a changing load the
-    /// Mac could briefly read more than the adapter supplies. Averaging the
-    /// last two samples (about 4 s) keeps them consistent; over a minute both
-    /// agree within 0.1 W (measured 2026-11-04).
+    /// Averages the last two samples (about 4 s) to steady the readings.
+    /// The Mac's draw is derived from input and battery in `merging`, so the
+    /// flow always adds up.
     private func smooth(_ r: LiveReading) -> LiveReading {
         guard let p = smoothed else { smoothed = r; return r }
         // Plugging or unplugging is a step, not noise.

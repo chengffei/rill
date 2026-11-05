@@ -69,6 +69,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.fitPopover()
         }
         model.start()
+        // Debug: RILL_FLOW_PREVIEW=/path.png renders the flow for four sample
+        // states (charging, full, adapter too weak, on battery) and quits.
+        if let path = ProcessInfo.processInfo.environment["RILL_FLOW_PREVIEW"] {
+            func sample(_ ext: Bool, _ input: Double, _ sys: Double, _ bat: Double, _ pct: Int) -> PowerSnapshot {
+                PowerSnapshot(percent: pct, state: .charging, externalConnected: ext, inputWatts: input, systemWatts: sys,
+                              batteryWatts: bat, lossWatts: 0, batteryVolts: 12.5, batteryAmps: bat / 12.5)
+            }
+            let samples = [sample(true, 36, 22.55, 13, 62), sample(true, 17.2, 16.5, 0, 100),
+                           sample(true, 20, 31, -11, 70), sample(false, 0, 12.4, -12.4, 45)]
+            let view = VStack(spacing: 14) {
+                ForEach(0..<samples.count, id: \.self) { i in
+                    FlowView(snapshot: samples[i]).frame(width: 332).glassCard()
+                }
+            }
+            .padding(16).background(Color(white: 0.93)).environment(\.colorScheme, .light)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 2
+            if let cg = renderer.cgImage {
+                try? NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:])?
+                    .write(to: URL(fileURLWithPath: path))
+            }
+            exit(0)
+        }
+
         // Debug: RILL_OPEN_POPOVER=1 opens the panel after launch, for screenshots.
         if ProcessInfo.processInfo.environment["RILL_OPEN_POPOVER"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
