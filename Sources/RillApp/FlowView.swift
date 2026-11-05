@@ -2,23 +2,22 @@ import RillCore
 import SwiftUI
 
 /// Sankey-style power flow: sources on the left, the Mac and the battery on
-/// the right, ribbons as thick as the power they carry, with pulses moving
-/// along them. Replaces the earlier in-line "charger → Mac → battery" row,
+/// the right, ribbons as thick as the power they carry, with light sweeping
+/// along them and sizes easing between readings (ribbons in Core Animation,
+/// see RibbonLayerView). Replaces the earlier in-line "charger → Mac → battery" row,
 /// which drew the battery as if it were fed through the Mac.
 struct FlowView: View {
     let snapshot: PowerSnapshot
     var height: CGFloat = 150
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let graph = FlowGraph(snapshot)
         GeometryReader { geo in
             let layout = FlowLayout(graph: graph, size: geo.size)
             ZStack(alignment: .topLeading) {
-                TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-                    Canvas { ctx, _ in
-                        draw(layout, graph: graph, in: &ctx, time: context.date.timeIntervalSinceReferenceDate)
-                    }
-                }
+                RibbonLayerView(ribbons: ribbons(layout, graph: graph), reduceMotion: reduceMotion)
                 ForEach(Array(layout.sourceFrames.enumerated()), id: \.offset) { i, frame in
                     NodeTile(node: graph.sources[i], showsWatts: true, percent: snapshot.percent)
                         .frame(width: frame.width, height: frame.height)
@@ -30,41 +29,25 @@ struct FlowView: View {
                         .position(x: frame.midX, y: frame.midY)
                 }
             }
+            // No SwiftUI animation here: inside glass cards every animated
+            // frame re-rasterises text on the CPU. Ribbons and their labels
+            // ease in Core Animation; tiles switch at once.
         }
         .frame(height: height)
         .padding(10)
     }
 
-    private func draw(_ layout: FlowLayout, graph: FlowGraph, in ctx: inout GraphicsContext, time: TimeInterval) {
-        for (i, link) in graph.links.enumerated() {
+    private func ribbons(_ layout: FlowLayout, graph: FlowGraph) -> [RibbonLayerView.Ribbon] {
+        graph.links.enumerated().map { i, link in
             let r = layout.ribbons[i]
-            let from = Self.color(graph.sources[link.from].role)
-            let to = Self.color(graph.sinks[link.to].role)
-            ctx.fill(r.path, with: .linearGradient(
-                Gradient(colors: [from.opacity(0.30), to.opacity(0.30)]),
-                startPoint: CGPoint(x: r.x0, y: 0), endPoint: CGPoint(x: r.x1, y: 0)))
-
-            // Pulses travel faster the more power flows.
-            if link.watts > FlowGraph.threshold {
-                let speed = min(0.9, 0.18 + link.watts / 120)
-                let count = 3
-                for k in 0..<count {
-                    let t = (time * speed + Double(k) / Double(count)).truncatingRemainder(dividingBy: 1)
-                    let p = r.center(at: t)
-                    // Fade at both ends and around the label in the middle.
-                    let clear = max(0, min(1, (abs(t - 0.5) - 0.13) / 0.1))
-                    let fade = sin(t * .pi) * clear
-                    let dot = CGRect(x: p.x - 2.6, y: p.y - 2.6, width: 5.2, height: 5.2)
-                    ctx.fill(Path(ellipseIn: dot), with: .color(to.opacity(0.85 * fade)))
-                }
-            }
-
-            if r.labelThickness >= 18 {
-                let label = Text(PowerFormat.watts(link.watts))
-                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Color.primary)
-                ctx.draw(label, at: r.center(at: 0.5))
-            }
+            return RibbonLayerView.Ribbon(
+                path: r.path.cgPath, x0: r.x0, x1: r.x1,
+                top: min(r.top0, r.top1), bottom: max(r.bottom0, r.bottom1),
+                from: NSColor(Self.color(graph.sources[link.from].role)),
+                to: NSColor(Self.color(graph.sinks[link.to].role)),
+                watts: link.watts,
+                labelCenter: r.center(at: 0.5),
+                showsLabel: r.labelThickness >= 18)
         }
     }
 
@@ -92,6 +75,7 @@ private struct NodeTile: View {
                 Text(PowerFormat.watts(node.watts))
                     .font(.system(size: 14, weight: .semibold).monospacedDigit())
                     .foregroundStyle(Color.primary)
+                    
             }
             Text(title)
                 .font(.system(size: 10.5))
@@ -231,4 +215,8 @@ struct FlowLayout {
         let y = u * u * u * y0 + 3 * u * u * t * y0 + 3 * u * t * t * y1 + t * t * t * y1
         return CGPoint(x: x, y: y)
     }
+}
+
+extension Array {
+    subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
