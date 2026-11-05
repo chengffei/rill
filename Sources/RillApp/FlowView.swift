@@ -103,9 +103,9 @@ private struct NodeTile: View {
 
     private var title: String {
         switch node.role {
-        case .adapter: return "充电器"
-        case .mac: return "电脑"
-        case .battery: return showsWatts ? "电池" : (node.watts > FlowGraph.threshold ? "充入电池" : "电池")
+        case .adapter: return L("充电器", "Charger")
+        case .mac: return L("电脑", "Mac")
+        case .battery: return showsWatts ? L("电池", "Battery") : (node.watts > FlowGraph.threshold ? L("充入电池", "Into Battery") : L("电池", "Battery"))
         }
     }
 }

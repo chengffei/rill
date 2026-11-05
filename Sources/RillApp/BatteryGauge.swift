@@ -32,7 +32,7 @@ struct BatteryGauge: View {
                 .frame(width: 3.5, height: 10)
         }
         .frame(width: 66, height: 30)
-        .accessibilityLabel("电量 \(percent)%")
+        .accessibilityLabel(L("电量 \(percent)%", "Battery \(percent)%"))
     }
 
     private var fill: Color {

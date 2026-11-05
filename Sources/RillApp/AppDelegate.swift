@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import RillCore
 import ServiceManagement
 import SwiftUI
@@ -9,6 +10,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
     private var dashboard: NSWindow?
+    private var settingsWindow: NSWindow?
+    private let settings = AppSettings.shared
+    private var subscriptions: Set<AnyCancellable> = []
     private var shownSymbol = ""
     private var shownTitle = ""
 
@@ -28,7 +32,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             w.toolbarStyle = .unified
             w.appearance = NSAppearance(named: .aqua)
             w.isReleasedWhenClosed = false
-            w.contentViewController = NSHostingController(rootView: DashboardView(model: model))
+            let hosting = NSHostingController(rootView: DashboardView(model: model, onOpenSettings: { [weak self] in self?.openSettings() }))
+            // Lets the SwiftUI .toolbar (the settings button) reach this window.
+            hosting.sceneBridgingOptions = [.toolbars]
+            w.contentViewController = hosting
             w.setContentSize(NSSize(width: 1040, height: 860))
             w.center()
             w.setFrameAutosaveName("RillDashboard")
@@ -38,6 +45,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.dashboardVisible = true
         NSApp.activate(ignoringOtherApps: true)
         dashboard?.makeKeyAndOrderFront(nil)
+    }
+
+    func openSettings() {
+        if settingsWindow == nil {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
+            w.styleMask = [.titled, .closable]
+            w.appearance = NSAppearance(named: .aqua)
+            w.isReleasedWhenClosed = false
+            w.title = L("设置", "Settings")
+            w.center()
+            settingsWindow = w
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -69,6 +90,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.fitPopover()
         }
         model.start()
+        settings.$showsPower.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
+            guard let self else { return }
+            self.shownTitle = "\u{0}"
+            self.updateStatusItem(self.lastSnapshot)
+        }.store(in: &subscriptions)
+        settings.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
+            self?.settingsWindow?.title = L("设置", "Settings")
+            self?.fitPopover()
+        }.store(in: &subscriptions)
         // Debug: RILL_FLOW_PREVIEW=/path.png renders the flow for five sample
         // states (charging, full, adapter too weak, on battery, trickle charge) and quits.
         if let path = ProcessInfo.processInfo.environment["RILL_FLOW_PREVIEW"] {
@@ -92,6 +122,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     .write(to: URL(fileURLWithPath: path))
             }
             exit(0)
+        }
+
+        // Debug: RILL_OPEN_SETTINGS=1 opens the Settings window at launch, for screenshots.
+        if ProcessInfo.processInfo.environment["RILL_OPEN_SETTINGS"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.openSettings() }
         }
 
         // Debug: RILL_OPEN_POPOVER=1 opens the panel 2.5 s after launch, for
@@ -119,7 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             model.dashboardVisible = dash
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [model] in
                 let content = dash
-                    ? AnyView(DashboardView(model: model, scrolls: false).frame(width: 1040))
+                    ? AnyView(DashboardView(model: model, onOpenSettings: {}, scrolls: false).frame(width: 1040))
                     : AnyView(PopoverView(model: model, onOpenDashboard: {}))
                 let renderer = ImageRenderer(content: content.environment(\.colorScheme, .light))
                 renderer.scale = 2
@@ -132,10 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private var showsPower: Bool {
-        get { UserDefaults.standard.object(forKey: "showsPower") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "showsPower") }
-    }
+    private var showsPower: Bool { settings.showsPower }
     private var lastSnapshot: PowerSnapshot?
 
     private func updateStatusItem(_ s: PowerSnapshot?) {
@@ -204,43 +236,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
-        let open = NSMenuItem(title: "打开 Dashboard", action: #selector(openDashboardFromMenu), keyEquivalent: "")
+        let open = NSMenuItem(title: L("打开 Dashboard", "Open Dashboard"), action: #selector(openDashboardFromMenu), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
-        let power = NSMenuItem(title: "在菜单栏显示实时功率", action: #selector(toggleShowsPower), keyEquivalent: "")
+        let power = NSMenuItem(title: L("在菜单栏显示实时功率", "Show Live Power in Menu Bar"), action: #selector(toggleShowsPower), keyEquivalent: "")
         power.target = self
         power.state = showsPower ? .on : .off
         menu.addItem(power)
-        let login = NSMenuItem(title: "开机启动", action: #selector(toggleLogin), keyEquivalent: "")
+        let login = NSMenuItem(title: L("开机启动", "Launch at Login"), action: #selector(toggleLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
+        let prefs = NSMenuItem(title: L("设置…", "Settings…"), action: #selector(openSettingsFromMenu), keyEquivalent: ",")
+        prefs.target = self
+        menu.addItem(prefs)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "退出 Rill", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L("退出 Rill", "Quit Rill"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
     }
 
     @objc private func openDashboardFromMenu() { openDashboard() }
+    @objc private func openSettingsFromMenu() { openSettings() }
 
     @objc private func toggleShowsPower() {
-        showsPower.toggle()
-        shownTitle = "\u{0}"
-        updateStatusItem(lastSnapshot)
+        settings.showsPower.toggle()
     }
 
     @objc private func toggleLogin() {
-        do {
-            if SMAppService.mainApp.status == .enabled {
-                try SMAppService.mainApp.unregister()
-            } else {
-                try SMAppService.mainApp.register()
-            }
-        } catch {
-            NSLog("Rill login item: \(error)")
-        }
+        settings.setLaunchAtLogin(SMAppService.mainApp.status != .enabled)
+        if let e = settings.loginError { NSLog("Rill login item: \(e)") }
     }
 }
 

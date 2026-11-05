@@ -17,6 +17,7 @@ enum Palette {
 struct PopoverView: View {
     @ObservedObject var model: PowerModel
     var onOpenDashboard: () -> Void
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         GlassEffectContainer(spacing: 12) {
@@ -32,7 +33,7 @@ struct PopoverView: View {
                     .padding(14)
                     .glassCard()
                 Button(action: onOpenDashboard) {
-                    Label("打开 Dashboard", systemImage: "chart.xyaxis.line")
+                    Label(L("打开 Dashboard", "Open Dashboard"), systemImage: "chart.xyaxis.line")
                         .font(.system(size: 13, weight: .medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 3)
@@ -40,7 +41,7 @@ struct PopoverView: View {
                 .buttonStyle(.glass)
                 .controlSize(.large)
             } else {
-                Text("这台 Mac 没有读到电池")
+                Text(L("这台 Mac 没有读到电池", "No battery found on this Mac"))
                     .foregroundStyle(Palette.secondary)
                     .frame(maxWidth: .infinity, minHeight: 120)
             }
@@ -48,6 +49,7 @@ struct PopoverView: View {
         }
         .padding(14)
         .frame(width: 360)
+        .id(settings.language)
         // A light wash under the cards: the popover's own glass over a dark
         // wallpaper made the whole panel read grey (2026-11-05).
         .background(Color(white: 0.98).opacity(0.72).ignoresSafeArea())
@@ -65,10 +67,10 @@ struct PopoverView: View {
                 .foregroundStyle(Palette.secondary)
             Spacer()
             if let m = s.minutesToFull {
-                Text("\(PowerFormat.duration(minutes: m))充满")
+                Text(L("\(durationText(m))充满", "Full in \(durationText(m))"))
                     .font(.system(size: 12)).foregroundStyle(Palette.caption)
             } else if let m = s.minutesToEmpty {
-                Text("剩余 \(PowerFormat.duration(minutes: m))")
+                Text(L("剩余 \(durationText(m))", "\(durationText(m)) left"))
                     .font(.system(size: 12)).foregroundStyle(Palette.caption)
             }
         }
@@ -76,11 +78,11 @@ struct PopoverView: View {
 
     private func stateText(_ s: PowerSnapshot) -> String {
         switch s.state {
-        case .charging: return "充电中"
-        case .full: return "已充满"
-        case .paused: return "暂停充电"
-        case .onBattery: return "使用电池"
-        case .assisting: return "充电器不够，电池补电"
+        case .charging: return L("充电中", "Charging")
+        case .full: return L("已充满", "Fully Charged")
+        case .paused: return L("暂停充电", "Charging Paused")
+        case .onBattery: return L("使用电池", "On Battery")
+        case .assisting: return L("充电器不够，电池补电", "Battery assisting the charger")
         }
     }
 
@@ -96,9 +98,9 @@ struct PopoverView: View {
     private var points: [Point] {
         var out: [Point] = []
         for (i, s) in model.history.samples.enumerated() {
-            out.append(Point(id: i * 3, date: s.date, watts: s.inputWatts, series: "输入"))
-            out.append(Point(id: i * 3 + 1, date: s.date, watts: s.systemWatts, series: "电脑"))
-            out.append(Point(id: i * 3 + 2, date: s.date, watts: s.batteryWatts, series: "电池"))
+            out.append(Point(id: i * 3, date: s.date, watts: s.inputWatts, series: L("输入", "Input")))
+            out.append(Point(id: i * 3 + 1, date: s.date, watts: s.systemWatts, series: L("电脑", "Mac")))
+            out.append(Point(id: i * 3 + 2, date: s.date, watts: s.batteryWatts, series: L("电池", "Battery")))
         }
         return out
     }
@@ -106,11 +108,11 @@ struct PopoverView: View {
     private var chart: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("近 10 分钟")
+                Text(L("近 10 分钟", "Last 10 Minutes"))
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.text)
                 Spacer()
                 if let avg = model.history.averageSystemWatts, let peak = model.history.peakSystemWatts {
-                    Text("电脑平均 \(PowerFormat.watts(avg))，峰值 \(PowerFormat.watts(peak))")
+                    Text(L("电脑平均 \(PowerFormat.watts(avg))，峰值 \(PowerFormat.watts(peak))", "Mac average \(PowerFormat.watts(avg)), peak \(PowerFormat.watts(peak))"))
                         .font(.system(size: 11).monospacedDigit()).foregroundStyle(Palette.caption)
                 }
             }
@@ -121,11 +123,11 @@ struct PopoverView: View {
                     .lineStyle(by: .value("线", p.series))
             }
             .chartLineStyleScale([
-                "输入": StrokeStyle(lineWidth: 1.6, dash: [4, 3]),
-                "电脑": StrokeStyle(lineWidth: 1.6),
-                "电池": StrokeStyle(lineWidth: 1.6),
+                L("输入", "Input"): StrokeStyle(lineWidth: 1.6, dash: [4, 3]),
+                L("电脑", "Mac"): StrokeStyle(lineWidth: 1.6),
+                L("电池", "Battery"): StrokeStyle(lineWidth: 1.6),
             ])
-            .chartForegroundStyleScale(["输入": Palette.input, "电脑": Palette.system, "电池": Palette.charge])
+            .chartForegroundStyleScale([L("输入", "Input"): Palette.input, L("电脑", "Mac"): Palette.system, L("电池", "Battery"): Palette.charge])
             .chartXAxis(.hidden)
             .chartYAxis {
                 AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { v in
@@ -147,23 +149,23 @@ struct PopoverView: View {
     private func details(_ s: PowerSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if let name = s.adapterName {
-                row("充电器", name)
+                row(L("充电器", "Charger"), name)
                 if let v = s.adapterNegotiatedVolts, let a = s.adapterNegotiatedAmps {
-                    let rated = s.adapterRatedWatts.map { "，\($0) W" } ?? ""
-                    row("协商", String(format: "%.1f V × %.2f A", v, a) + rated)
+                    let rated = s.adapterRatedWatts.map { L("，\($0) W", ", \($0) W") } ?? ""
+                    row(L("协商", "Negotiated"), String(format: "%.1f V × %.2f A", v, a) + rated)
                 }
                 if let v = s.inputVolts, let a = s.inputAmps {
-                    row("实际输入", String(format: "%.2f V × %.2f A", v, a))
+                    row(L("实际输入", "Actual Input"), String(format: "%.2f V × %.2f A", v, a))
                 }
-                row("转换损耗", PowerFormat.watts(s.lossWatts))
+                row(L("转换损耗", "Conversion Loss"), PowerFormat.watts(s.lossWatts))
                 Divider().padding(.vertical, 2)
             }
-            row("电池", String(format: "%.2f V × %.2f A", s.batteryVolts, s.batteryAmps))
+            row(L("电池", "Battery"), String(format: "%.2f V × %.2f A", s.batteryVolts, s.batteryAmps))
             if let h = s.health, let full = s.fullChargeCapacity, let design = s.designCapacity {
-                row("健康度", String(format: "%.0f%%", h * 100) + "（\(full) / \(design) mAh）")
+                row(L("健康度", "Health"), String(format: "%.0f%%", h * 100) + L("（\(full) / \(design) mAh）", " (\(full) / \(design) mAh)"))
             }
-            if let t = s.temperature { row("电池温度", String(format: "%.1f °C", t)) }
-            if let c = s.cycleCount { row("循环次数", "\(c)") }
+            if let t = s.temperature { row(L("电池温度", "Battery Temperature"), String(format: "%.1f °C", t)) }
+            if let c = s.cycleCount { row(L("循环次数", "Cycle Count"), "\(c)") }
         }
     }
 

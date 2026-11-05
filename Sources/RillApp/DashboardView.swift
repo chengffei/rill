@@ -4,15 +4,42 @@ import SwiftUI
 
 struct DashboardView: View {
     @ObservedObject var model: PowerModel
+    var onOpenSettings: () -> Void
+    @ObservedObject private var settings = AppSettings.shared
     @State private var range: ChartRange = .hour6
+    @State private var scroller = GlassScroller.State()
+    @State private var scrollPosition = ScrollPosition(edge: .top)
     /// ImageRenderer can't draw ScrollView content; snapshots turn it off.
     var scrolls = true
 
     var body: some View {
         Group {
-            if scrolls { ScrollView { content } } else { content }
+            if scrolls {
+                // The system scroller showed as a thick grey legacy bar
+                // (Felix, 2026-11-05); a glass thumb replaces it.
+                ScrollView { content.id(settings.language) }
+                    .scrollIndicators(.never)
+                    .scrollPosition($scrollPosition)
+                    .onScrollGeometryChange(for: GlassScroller.Metrics.self, of: GlassScroller.Metrics.init) { _, m in
+                        scroller.update(m)
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        GlassScroller(state: scroller, position: $scrollPosition)
+                    }
+            } else {
+                content
+            }
         }
         .frame(minWidth: 920, minHeight: 640)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: onOpenSettings) {
+                    Image(systemName: "gearshape")
+                }
+                .help(L("设置", "Settings"))
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 
     private var content: some View {
@@ -28,13 +55,13 @@ struct DashboardView: View {
                     EnergyAppsCard(top: model.topApps, heavy: model.heavyApps, measured: model.energyMeasured)
                     powerCard
                     HStack(alignment: .top, spacing: 16) {
-                        SeriesCard(title: "电量", unit: "%", records: visibleRecords, color: Palette.charge,
+                        SeriesCard(title: L("电量", "Battery Level"), unit: "%", records: visibleRecords, color: Palette.charge,
                                    domain: 0...100, value: { Double($0.percent) })
-                        SeriesCard(title: "电池温度", unit: "°C", records: visibleRecords, color: Palette.discharge,
+                        SeriesCard(title: L("电池温度", "Battery Temperature"), unit: "°C", records: visibleRecords, color: Palette.discharge,
                                    domain: nil, value: { $0.temp })
                     }
                 } else {
-                    Text("这台 Mac 没有读到电池")
+                    Text(L("这台 Mac 没有读到电池", "No battery found on this Mac"))
                         .foregroundStyle(Palette.secondary)
                         .frame(maxWidth: .infinity, minHeight: 300)
                 }
@@ -62,10 +89,10 @@ struct DashboardView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.secondary)
                 if let m = s.minutesToFull {
-                    Text("\(PowerFormat.duration(minutes: m))充满")
+                    Text(L("\(durationText(m))充满", "Full in \(durationText(m))"))
                         .font(.system(size: 12)).foregroundStyle(Palette.caption)
                 } else if let m = s.minutesToEmpty {
-                    Text("剩余 \(PowerFormat.duration(minutes: m))")
+                    Text(L("剩余 \(durationText(m))", "\(durationText(m)) left"))
                         .font(.system(size: 12)).foregroundStyle(Palette.caption)
                 }
             }
@@ -85,33 +112,33 @@ struct DashboardView: View {
     // MARK: Cards
 
     private func batteryCard(_ s: PowerSnapshot) -> some View {
-        Card(title: "电池") {
-            Row("电压与电流", String(format: "%.2f V × %.2f A", s.batteryVolts, s.batteryAmps))
-            Row("功率", (s.batteryWatts >= 0 ? "充入 " : "放出 ") + PowerFormat.watts(s.batteryWatts))
-            if let t = s.temperature { Row("温度", String(format: "%.1f °C", t)) }
-            if let h = s.health { Row("健康度", String(format: "%.0f%%", h * 100)) }
+        Card(title: L("电池", "Battery")) {
+            Row(L("电压与电流", "Voltage & Current"), String(format: "%.2f V × %.2f A", s.batteryVolts, s.batteryAmps))
+            Row(L("功率", "Power"), (s.batteryWatts >= 0 ? L("充入 ", "In ") : L("放出 ", "Out ")) + PowerFormat.watts(s.batteryWatts))
+            if let t = s.temperature { Row(L("温度", "Temperature"), String(format: "%.1f °C", t)) }
+            if let h = s.health { Row(L("健康度", "Health"), String(format: "%.0f%%", h * 100)) }
             if let full = s.fullChargeCapacity, let design = s.designCapacity {
-                Row("容量", "\(full) / \(design) mAh")
+                Row(L("容量", "Capacity"), "\(full) / \(design) mAh")
             }
-            if let c = s.cycleCount { Row("循环次数", "\(c)") }
+            if let c = s.cycleCount { Row(L("循环次数", "Cycle Count"), "\(c)") }
         }
     }
 
     private func adapterCard(_ s: PowerSnapshot) -> some View {
-        Card(title: "充电器") {
+        Card(title: L("充电器", "Charger")) {
             if let name = s.adapterName {
-                Row("型号", name)
-                if let w = s.adapterRatedWatts { Row("额定", "\(w) W") }
+                Row(L("型号", "Model"), name)
+                if let w = s.adapterRatedWatts { Row(L("额定", "Rated"), "\(w) W") }
                 if let v = s.adapterNegotiatedVolts, let a = s.adapterNegotiatedAmps {
-                    Row("协商", String(format: "%.1f V × %.2f A", v, a))
+                    Row(L("协商", "Negotiated"), String(format: "%.1f V × %.2f A", v, a))
                 }
-                Row("实际输入", PowerFormat.watts(s.inputWatts))
+                Row(L("实际输入", "Actual Input"), PowerFormat.watts(s.inputWatts))
                 if let rated = s.adapterRatedWatts, rated > 0 {
-                    Row("利用率", String(format: "%.0f%%", s.inputWatts / Double(rated) * 100))
+                    Row(L("利用率", "Utilization"), String(format: "%.0f%%", s.inputWatts / Double(rated) * 100))
                 }
-                Row("转换损耗", PowerFormat.watts(s.lossWatts))
+                Row(L("转换损耗", "Conversion Loss"), PowerFormat.watts(s.lossWatts))
             } else {
-                Text("未接充电器").font(.system(size: 13)).foregroundStyle(Palette.caption)
+                Text(L("未接充电器", "No charger connected")).font(.system(size: 13)).foregroundStyle(Palette.caption)
             }
         }
     }
@@ -119,13 +146,13 @@ struct DashboardView: View {
     private var todayCard: some View {
         let start = Calendar.current.startOfDay(for: Date())
         let e = EnergyStats(records: model.minutes.filter { $0.t >= start })
-        return Card(title: "今日用电") {
-            Row("充电器供电", String(format: "%.1f Wh", e.inputWh))
-            Row("电脑用电", String(format: "%.1f Wh", e.systemWh))
-            Row("充入电池", String(format: "%.1f Wh", e.chargedWh))
-            Row("电池放出", String(format: "%.1f Wh", e.dischargedWh))
-            if let avg = e.averageSystem { Row("平均负载", PowerFormat.watts(avg)) }
-            if let peak = e.peakSystem { Row("最高分钟负载", PowerFormat.watts(peak)) }
+        return Card(title: L("今日用电", "Today")) {
+            Row(L("充电器供电", "From Charger"), String(format: "%.1f Wh", e.inputWh))
+            Row(L("电脑用电", "Used by Mac"), String(format: "%.1f Wh", e.systemWh))
+            Row(L("充入电池", "Into Battery"), String(format: "%.1f Wh", e.chargedWh))
+            Row(L("电池放出", "From Battery"), String(format: "%.1f Wh", e.dischargedWh))
+            if let avg = e.averageSystem { Row(L("平均负载", "Average Load"), PowerFormat.watts(avg)) }
+            if let peak = e.peakSystem { Row(L("最高分钟负载", "Peak Minute Load"), PowerFormat.watts(peak)) }
         }
     }
 
@@ -139,7 +166,7 @@ struct DashboardView: View {
     private var powerCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("功率").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.text)
+                Text(L("功率", "Power")).font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.text)
                 Spacer()
                 Picker("", selection: $range) {
                     ForEach(ChartRange.allCases) { Text($0.label).tag($0) }
@@ -157,11 +184,11 @@ struct DashboardView: View {
 
     private func stateText(_ s: PowerSnapshot) -> String {
         switch s.state {
-        case .charging: return "充电中"
-        case .full: return "已充满"
-        case .paused: return "暂停充电"
-        case .onBattery: return "使用电池"
-        case .assisting: return "充电器不够，电池补电"
+        case .charging: return L("充电中", "Charging")
+        case .full: return L("已充满", "Fully Charged")
+        case .paused: return L("暂停充电", "Charging Paused")
+        case .onBattery: return L("使用电池", "On Battery")
+        case .assisting: return L("充电器不够，电池补电", "Battery assisting the charger")
         }
     }
 }
@@ -171,10 +198,10 @@ enum ChartRange: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .hour1: return "1 小时"
-        case .hour6: return "6 小时"
-        case .hour24: return "24 小时"
-        case .day7: return "7 天"
+        case .hour1: return L("1 小时", "1 Hour")
+        case .hour6: return L("6 小时", "6 Hours")
+        case .hour24: return L("24 小时", "24 Hours")
+        case .day7: return L("7 天", "7 Days")
         }
     }
     var seconds: TimeInterval {
@@ -233,9 +260,9 @@ private struct PowerChart: View {
 
     private var points: [Point] {
         records.flatMap { r in
-            [Point(id: "i\(r.t.timeIntervalSince1970)", t: r.t, w: r.input, series: "输入"),
-             Point(id: "s\(r.t.timeIntervalSince1970)", t: r.t, w: r.system, series: "电脑"),
-             Point(id: "b\(r.t.timeIntervalSince1970)", t: r.t, w: r.battery, series: "电池")]
+            [Point(id: "i\(r.t.timeIntervalSince1970)", t: r.t, w: r.input, series: L("输入", "Input")),
+             Point(id: "s\(r.t.timeIntervalSince1970)", t: r.t, w: r.system, series: L("电脑", "Mac")),
+             Point(id: "b\(r.t.timeIntervalSince1970)", t: r.t, w: r.battery, series: L("电池", "Battery"))]
         }
     }
 
@@ -246,7 +273,7 @@ private struct PowerChart: View {
 
     var body: some View {
         if records.count < 2 {
-            Text("还没有记录。Rill 每分钟存一条，开着就会积累。")
+            Text(L("还没有记录。Rill 每分钟存一条，开着就会积累。", "No history yet. Rill saves a reading every minute while it runs."))
                 .font(.system(size: 13)).foregroundStyle(Palette.caption)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -265,9 +292,9 @@ private struct PowerChart: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(r.t, format: .dateTime.month().day().hour().minute())
                                     .foregroundStyle(Palette.caption)
-                                Text("输入 \(PowerFormat.watts(r.input))")
-                                Text("电脑 \(PowerFormat.watts(r.system))")
-                                Text((r.battery >= 0 ? "充入 " : "放出 ") + PowerFormat.watts(r.battery))
+                                Text(L("输入 ", "Input ") + PowerFormat.watts(r.input))
+                                Text(L("电脑 ", "Mac ") + PowerFormat.watts(r.system))
+                                Text((r.battery >= 0 ? L("充入 ", "In ") : L("放出 ", "Out ")) + PowerFormat.watts(r.battery))
                             }
                             .font(.system(size: 11).monospacedDigit())
                             .foregroundStyle(Palette.text)
@@ -276,11 +303,11 @@ private struct PowerChart: View {
                         }
                 }
             }
-            .chartForegroundStyleScale(["输入": Palette.input, "电脑": Palette.system, "电池": Palette.charge])
+            .chartForegroundStyleScale([L("输入", "Input"): Palette.input, L("电脑", "Mac"): Palette.system, L("电池", "Battery"): Palette.charge])
             .chartLineStyleScale([
-                "输入": StrokeStyle(lineWidth: 1.6, dash: [4, 3]),
-                "电脑": StrokeStyle(lineWidth: 1.8),
-                "电池": StrokeStyle(lineWidth: 1.6),
+                L("输入", "Input"): StrokeStyle(lineWidth: 1.6, dash: [4, 3]),
+                L("电脑", "Mac"): StrokeStyle(lineWidth: 1.8),
+                L("电池", "Battery"): StrokeStyle(lineWidth: 1.6),
             ])
             .chartXSelection(value: $selected)
             .chartYAxis {
@@ -314,7 +341,7 @@ private struct SeriesCard: View {
                 }
             }
             if pts.count < 2 {
-                Text("还没有记录").font(.system(size: 13)).foregroundStyle(Palette.caption)
+                Text(L("还没有记录", "No history yet")).font(.system(size: 13)).foregroundStyle(Palette.caption)
                     .frame(maxWidth: .infinity, minHeight: 140)
             } else {
                 let chart = Chart {

@@ -35,9 +35,10 @@ public enum PowerFormat {
         return v >= 100 ? String(format: "%.0f W", v) : String(format: "%.1f W", v)
     }
 
-    /// "1 小时 25 分", "25 分".
-    public static func duration(minutes: Int) -> String {
+    /// "1 小时 25 分", "25 分"; in English "1 h 25 min", "25 min".
+    public static func duration(minutes: Int, english: Bool = false) -> String {
         let h = minutes / 60, m = minutes % 60
+        if english { return h > 0 ? "\(h) h \(m) min" : "\(m) min" }
         return h > 0 ? "\(h) 小时 \(m) 分" : "\(m) 分"
     }
 }

@@ -9,12 +9,12 @@ struct HeavyAppsRow: View {
     var body: some View {
         HStack(spacing: 10) {
             if apps.isEmpty {
-                Text("没有应用在大量耗电")
+                Text(L("没有应用在大量耗电", "No apps using significant energy"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.secondary)
                     .frame(maxWidth: .infinity)
             } else {
-                Text("正在大量耗电")
+                Text(L("正在大量耗电", "Using Significant Energy"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.primary)
                     .layoutPriority(1)
@@ -35,7 +35,7 @@ struct HeavyAppsRow: View {
                             .resizable()
                             .frame(width: 24, height: 24)
                     }
-                    .help("\(info.name) 近 20 秒平均 CPU 能耗 \(PowerFormat.watts(app.watts))")
+                    .help(L("\(info.name) 近 20 秒平均 CPU 能耗 \(PowerFormat.watts(app.watts))", "\(info.name): \(PowerFormat.watts(app.watts)) CPU energy, 20-second average"))
                 }
                 if apps.count > 3 {
                     Text("+\(apps.count - 3)")
@@ -59,13 +59,13 @@ struct EnergyAppsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text("耗电应用").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
+                Text(L("耗电应用", "Energy by App")).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
                 Spacer()
-                Text("CPU 能耗，近 20 秒平均；≥ 1 W 记为大量耗电")
+                Text(L("CPU 能耗，近 20 秒平均；≥ 1 W 记为大量耗电", "CPU energy, 20-second average; 1 W or more counts as significant"))
                     .font(.system(size: 11)).foregroundStyle(Color.secondary)
             }
             if top.isEmpty {
-                Text(measured ? "没有应用在明显耗电（都低于 0.05 W）" : "正在统计，几秒后出现")
+                Text(measured ? L("没有应用在明显耗电（都低于 0.05 W）", "No app is drawing noticeable power (all under 0.05 W)") : L("正在统计，几秒后出现", "Measuring, results in a few seconds"))
                     .font(.system(size: 13)).foregroundStyle(Color.secondary)
                     .frame(maxWidth: .infinity, minHeight: 60)
             } else {

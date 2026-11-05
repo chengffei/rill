@@ -106,6 +106,7 @@ final class PowerSnapshotTests: XCTestCase {
         XCTAssertEqual(PowerFormat.watts(140.2), "140 W")
         XCTAssertEqual(PowerFormat.duration(minutes: 85), "1 小时 25 分")
         XCTAssertEqual(PowerFormat.duration(minutes: 25), "25 分")
+        XCTAssertEqual(PowerFormat.duration(minutes: 85, english: true), "1 h 25 min")
     }
 }
 
