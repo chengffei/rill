@@ -47,3 +47,4 @@
 - 11-05 面板灰暗（Felix：灰蒙蒙、偏暗）：原因是卡片 .regular 玻璃叠在 popover 自己的玻璃上，深色壁纸透两层变灰，节点卡又是 primary 6% 的深色叠层。改法：glassCard 加白色 55% tint；popover 内容底铺 white 0.98 × 72%（ignoresSafeArea）；节点卡改 black 4.5%，在白卡上像 #f5f5f7 分区；带子填色透明度 0.30 → 0.42。深色 VS Code 背景下真机截图核对过；Dashboard 只跟着 glassCard 变亮，未截图。
 - 11-05 设置窗口（Felix：Dashboard 没有设置）：Settings.swift 的 AppSettings 管语言、开机启动（SMAppService）、菜单栏显示功率；入口是 Dashboard 工具栏齿轮（hosting.sceneBridgingOptions = [.toolbars]，⌘,）和右键菜单「设置…」。语言只做简体中文和 English，字符串就地写成 L("中文", "English")；根视图按 language 加 .id，切换立即生效。默认简体中文，因为本机系统首选语言是 en-CN，选「跟随系统」会变英文。图表内部的 .value("时间") 等标签没翻译，界面上看不到。RILL_OPEN_SETTINGS=1 启动即打开设置窗口。
 - 11-05 Dashboard 滚动条（Felix：太丑，要玻璃）：系统设成「始终显示滚动条」，所以是粗灰旧式滚动条。改为 .scrollIndicators(.never) 加自绘 GlassScroller：玻璃胶囊，滚动或指针靠近右边缘时出现，1.2 秒后淡出，可拖动（ScrollPosition.scrollTo）。状态放在 @Observable 对象里，只有滚动条读，滚动时不重算整页。未实测滚动和拖动（规定不发模拟输入），等 Felix 试。
+- 11-05 0.6.0：真 Sankey 比例、空闲电池不进能量流、面板调亮、设置窗口（中英、开机启动、菜单栏功率）、Dashboard 玻璃滚动条。本地 tag v0.6.0，无远端。
