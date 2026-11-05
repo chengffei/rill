@@ -25,6 +25,8 @@ struct PopoverView: View {
                 header(s)
                 FlowView(snapshot: s)
                     .glassCard()
+                HeavyAppsRow(apps: model.heavyApps)
+                    .glassCard()
                 chart
                 details(s)
                     .padding(14)

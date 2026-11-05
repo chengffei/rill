@@ -10,6 +10,13 @@ final class PowerModel: ObservableObject {
     @Published private(set) var history = PowerHistory(window: 10 * 60)
     /// Minute records for the last 7 days plus the minute in progress.
     @Published private(set) var minutes: [MinuteRecord] = []
+    /// Apps using significant energy, and the busiest apps overall.
+    @Published private(set) var heavyApps: [AppUsage] = []
+    @Published private(set) var topApps: [AppUsage] = []
+
+    private let energyReader = ProcessEnergyReader()
+    private var energyTracker = AppEnergyTracker(timeConstant: 20)
+    private var tick = 0
 
     private let store = HistoryStore(directory: ProcessInfo.processInfo.environment["RILL_HISTORY_DIR"].map { URL(fileURLWithPath: $0) })
     private var aggregator = MinuteAggregator(interval: 2)
@@ -53,6 +60,12 @@ final class PowerModel: ObservableObject {
             s?.date = now
         }
         latest = s
+        // Per-app energy every other sample (4 s); reading ~800 processes
+        // costs about a millisecond.
+        tick += 1
+        if tick % 2 == 1 {
+            energyTracker.ingest(energyReader.read(), at: now)
+        }
         // The panel's size depends on the snapshot (adapter rows come and go),
         // so keep it current even while closed; the popover is sized from it
         // before it opens. Only the heavier history waits for visibility.
@@ -90,6 +103,10 @@ final class PowerModel: ObservableObject {
     private func publish() {
         snapshot = latest
         history = latestHistory
+        let heavy = energyTracker.heavyApps()
+        if heavy != heavyApps { heavyApps = heavy }
+        let top = Array(energyTracker.usages().prefix(5))
+        if dashboardVisible, top != topApps { topApps = top }
         if dashboardVisible {
             minutes = savedMinutes + (aggregator.partial().map { [$0] } ?? [])
         }

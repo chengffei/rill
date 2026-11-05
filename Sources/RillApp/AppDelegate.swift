@@ -93,9 +93,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
-        // Debug: RILL_OPEN_POPOVER=1 opens the panel after launch, for screenshots.
-        if ProcessInfo.processInfo.environment["RILL_OPEN_POPOVER"] != nil {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+        // Debug: RILL_OPEN_POPOVER=1 opens the panel 2.5 s after launch, for
+        // screenshots; a number instead of 1 is the delay in seconds.
+        if let value = ProcessInfo.processInfo.environment["RILL_OPEN_POPOVER"] {
+            let delay = Double(value).flatMap { $0 > 1 ? $0 : nil } ?? 2.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 guard let self, let button = self.statusItem.button else { return }
                 self.statusItemClicked(button)
             }
