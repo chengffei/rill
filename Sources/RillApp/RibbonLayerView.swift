@@ -140,7 +140,7 @@ final class RibbonNSView: NSView {
         let w = max(bounds.width, 1)
         for (r, l) in zip(current, items) {
             l.fill.frame = bounds
-            l.fill.colors = [r.from.withAlphaComponent(0.30).cgColor, r.to.withAlphaComponent(0.30).cgColor]
+            l.fill.colors = [r.from.withAlphaComponent(0.42).cgColor, r.to.withAlphaComponent(0.42).cgColor]
             l.fill.startPoint = CGPoint(x: r.x0 / w, y: 0.5)
             l.fill.endPoint = CGPoint(x: r.x1 / w, y: 0.5)
             l.sweepHost.frame = bounds

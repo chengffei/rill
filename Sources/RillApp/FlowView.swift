@@ -83,7 +83,7 @@ private struct NodeTile: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.045)))
     }
 
     private var symbol: String {

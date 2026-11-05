@@ -48,6 +48,9 @@ struct PopoverView: View {
         }
         .padding(14)
         .frame(width: 360)
+        // A light wash under the cards: the popover's own glass over a dark
+        // wallpaper made the whole panel read grey (2026-11-05).
+        .background(Color(white: 0.98).opacity(0.72).ignoresSafeArea())
     }
 
     // MARK: Header
