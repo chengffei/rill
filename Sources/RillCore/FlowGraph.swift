@@ -42,11 +42,18 @@ public struct FlowGraph: Equatable, Sendable {
                           links: [Link(from: 0, to: 0, watts: fromAdapter), Link(from: 1, to: 0, watts: discharge)])
             } else {
                 // Battery on top, Mac below, as in macOS's own battery views.
-                var links = [Link(from: 0, to: 1, watts: system)]
-                if charge > Self.threshold { links.insert(Link(from: 0, to: 0, watts: charge), at: 0) }
-                self.init(sources: [Node(role: .adapter, watts: s.inputWatts)],
-                          sinks: [Node(role: .battery, watts: charge > Self.threshold ? charge : 0), Node(role: .mac, watts: system)],
-                          links: links)
+                // An idle battery (full, or held) carries no flow, so it
+                // leaves the graph; a tile for it would steal height from the
+                // ribbon and shrink the charger tile with it (2026-11-05).
+                let adapter = [Node(role: .adapter, watts: s.inputWatts)]
+                if charge > Self.threshold {
+                    self.init(sources: adapter,
+                              sinks: [Node(role: .battery, watts: charge), Node(role: .mac, watts: system)],
+                              links: [Link(from: 0, to: 0, watts: charge), Link(from: 0, to: 1, watts: system)])
+                } else {
+                    self.init(sources: adapter, sinks: [Node(role: .mac, watts: system)],
+                              links: [Link(from: 0, to: 0, watts: system)])
+                }
             }
         } else {
             self.init(sources: [Node(role: .battery, watts: discharge)],

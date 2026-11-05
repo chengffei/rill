@@ -14,11 +14,10 @@ final class FlowGraphTests: XCTestCase {
         XCTAssertEqual(g.links, [.init(from: 0, to: 0, watts: 13), .init(from: 0, to: 1, watts: 22.5)])
     }
 
-    func testFullBatteryKeepsIdleBatteryNode() {
+    func testFullBatteryLeavesTheGraph() {
         let g = FlowGraph(snap(external: true, input: 17, system: 16.5, battery: 0))
-        XCTAssertEqual(g.sinks.map(\.role), [.battery, .mac])
-        XCTAssertEqual(g.sinks[0].watts, 0)
-        XCTAssertEqual(g.links, [.init(from: 0, to: 1, watts: 16.5)])
+        XCTAssertEqual(g.sinks.map(\.role), [.mac])
+        XCTAssertEqual(g.links, [.init(from: 0, to: 0, watts: 16.5)])
     }
 
     func testWeakAdapterMergesWithBattery() {
