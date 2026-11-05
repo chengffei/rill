@@ -13,6 +13,8 @@ final class PowerModel: ObservableObject {
     /// Apps using significant energy, and the busiest apps overall.
     @Published private(set) var heavyApps: [AppUsage] = []
     @Published private(set) var topApps: [AppUsage] = []
+    /// False until the first two energy readings give a rate.
+    @Published private(set) var energyMeasured = false
 
     private let energyReader = ProcessEnergyReader()
     private var energyTracker = AppEnergyTracker(timeConstant: 20)
@@ -105,7 +107,9 @@ final class PowerModel: ObservableObject {
         history = latestHistory
         let heavy = energyTracker.heavyApps()
         if heavy != heavyApps { heavyApps = heavy }
-        let top = Array(energyTracker.usages().prefix(5))
+        // Apps under 0.05 W tell nothing; leave them out.
+        let top = Array(energyTracker.usages().filter { $0.watts >= 0.05 }.prefix(5))
+        if dashboardVisible, !energyMeasured, !energyTracker.usages().isEmpty { energyMeasured = true }
         if dashboardVisible, top != topApps { topApps = top }
         if dashboardVisible {
             minutes = savedMinutes + (aggregator.partial().map { [$0] } ?? [])

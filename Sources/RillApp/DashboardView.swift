@@ -25,7 +25,7 @@ struct DashboardView: View {
                         adapterCard(s)
                         todayCard
                     }
-                    EnergyAppsCard(top: model.topApps, heavy: model.heavyApps)
+                    EnergyAppsCard(top: model.topApps, heavy: model.heavyApps, measured: model.energyMeasured)
                     powerCard
                     HStack(alignment: .top, spacing: 16) {
                         SeriesCard(title: "电量", unit: "%", records: visibleRecords, color: Palette.charge,

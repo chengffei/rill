@@ -54,6 +54,7 @@ struct HeavyAppsRow: View {
 struct EnergyAppsCard: View {
     let top: [AppUsage]
     let heavy: [AppUsage]
+    let measured: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -64,7 +65,7 @@ struct EnergyAppsCard: View {
                     .font(.system(size: 11)).foregroundStyle(Color.secondary)
             }
             if top.isEmpty {
-                Text("正在统计，几秒后出现")
+                Text(measured ? "没有应用在明显耗电（都低于 0.05 W）" : "正在统计，几秒后出现")
                     .font(.system(size: 13)).foregroundStyle(Color.secondary)
                     .frame(maxWidth: .infinity, minHeight: 60)
             } else {
