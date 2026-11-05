@@ -110,8 +110,11 @@ private struct NodeTile: View {
     }
 }
 
-/// Geometry for the flow: node tiles stacked in two columns, ribbons whose
-/// thickness at each end is their share of the node they touch.
+/// Geometry for the flow, a true Sankey: one scale turns watts into points
+/// for every tile and ribbon, so a tile's height is the power through it and
+/// a ribbon keeps the same thickness from end to end. The charger tile is the
+/// 100 % bar; the ribbons leaving it split its height by share (2026-11-05,
+/// Felix: the old trunk narrowed to 60 % and the tiles ignored the scale).
 struct FlowLayout {
     struct Ribbon {
         let path: Path
@@ -131,41 +134,48 @@ struct FlowLayout {
     let sinkFrames: [CGRect]
     let ribbons: [Ribbon]
 
+    /// Tiles never get shorter than this, so icon and label fit; an idle node
+    /// (no flow) gets exactly this.
+    static let minTile: CGFloat = 46
+    static let gap: CGFloat = 8
+
     init(graph: FlowGraph, size: CGSize) {
         let tileWidth: CGFloat = min(84, size.width * 0.24)
         let sinkWidth: CGFloat = min(76, size.width * 0.21)
-        let gap: CGFloat = 8
-        sourceFrames = Self.stack(graph.sources, x: 0, width: tileWidth, height: size.height, gap: gap)
-        sinkFrames = Self.stack(graph.sinks, x: size.width - sinkWidth, width: sinkWidth, height: size.height, gap: gap)
+        let H = size.height
+        let w = graph.links.map { CGFloat(max($0.watts, 0)) }
 
-        // Each node's links share its height in proportion to their watts.
-        // On the trunk side (fewer nodes) the bundle is narrowed and centred,
-        // so ribbons branch out from it like the reference Sankey; the other
-        // side fills each node.
-        func segments(nodeFrames: [CGRect], key: (FlowGraph.Link) -> Int, trunk: Bool) -> [Int: (CGFloat, CGFloat)] {
+        // Flow through each node is the sum of its links, so both ends of
+        // every ribbon match the tiles they touch.
+        let sourceFlow = graph.sources.indices.map { n in graph.links.indices.filter { graph.links[$0].from == n }.map { w[$0] }.reduce(0, +) }
+        let sinkFlow = graph.sinks.indices.map { n in graph.links.indices.filter { graph.links[$0].to == n }.map { w[$0] }.reduce(0, +) }
+
+        // One scale for both columns: the largest that lets each fit.
+        let k = min(Self.scale(sourceFlow, height: H), Self.scale(sinkFlow, height: H))
+        sourceFrames = Self.stack(sourceFlow, k: k, x: 0, width: tileWidth, height: H)
+        sinkFrames = Self.stack(sinkFlow, k: k, x: size.width - sinkWidth, width: sinkWidth, height: H)
+
+        // Each node's links stack inside it, k·watts thick, centred in the
+        // tile (a tile lifted to the minimum is taller than its flow).
+        func ends(_ frames: [CGRect], _ flow: [CGFloat], key: (FlowGraph.Link) -> Int) -> [Int: (CGFloat, CGFloat)] {
             var out: [Int: (CGFloat, CGFloat)] = [:]
-            for (n, frame) in nodeFrames.enumerated() {
-                let mine = graph.links.enumerated().filter { key($0.element) == n }
-                let total = mine.map { max($0.element.watts, 0.01) }.reduce(0, +)
-                let usable = trunk ? frame.height * 0.6 : frame.height - 6
-                var y = frame.midY - usable / 2
-                for (i, link) in mine {
-                    let h = usable * CGFloat(max(link.watts, 0.01) / total)
-                    out[i] = (y, y + h)
-                    y += h
+            for (n, frame) in frames.enumerated() {
+                var y = frame.midY - k * flow[n] / 2
+                for i in graph.links.indices where key(graph.links[i]) == n {
+                    out[i] = (y, y + k * w[i])
+                    y += k * w[i]
                 }
             }
             return out
         }
-        let sourceIsTrunk = graph.sources.count <= graph.sinks.count
-        let left = segments(nodeFrames: sourceFrames, key: \.from, trunk: sourceIsTrunk)
-        let right = segments(nodeFrames: sinkFrames, key: \.to, trunk: !sourceIsTrunk)
+        let left = ends(sourceFrames, sourceFlow, key: \.from)
+        let right = ends(sinkFrames, sinkFlow, key: \.to)
         let x0 = tileWidth - 2, x1 = size.width - sinkWidth + 2
         ribbons = graph.links.indices.map { i in
             let (t0, b0) = left[i] ?? (0, 0)
             let (t1, b1) = right[i] ?? (0, 0)
             // Pull ribbons in a little so neighbours read as separate bands.
-            let inset: CGFloat = 1.5
+            let inset: CGFloat = min(1.5, (b0 - t0) / 4)
             let a0 = t0 + inset, c0 = b0 - inset, a1 = t1 + inset, c1 = b1 - inset
             var p = Path()
             p.move(to: CGPoint(x: x0, y: a0))
@@ -177,26 +187,35 @@ struct FlowLayout {
         }
     }
 
-    /// Stacks node tiles in a column; busier nodes get more height, every
-    /// tile at least 46 pt so its icon and label fit.
-    private static func stack(_ nodes: [FlowGraph.Node], x: CGFloat, width: CGFloat, height: CGFloat, gap: CGFloat) -> [CGRect] {
-        guard !nodes.isEmpty else { return [] }
-        let usable = height - gap * CGFloat(nodes.count - 1)
-        let minH: CGFloat = 46
-        let total = nodes.map { max($0.watts, 0) }.reduce(0, +)
-        var heights = nodes.map { n -> CGFloat in
-            total > 0 ? usable * CGFloat(max(n.watts, 0) / total) : usable / CGFloat(nodes.count)
+    private static func isActive(_ f: CGFloat) -> Bool { f > CGFloat(FlowGraph.threshold) }
+
+    /// Largest points-per-watt at which a column fits in `height`: every
+    /// tile is max(k·flow, minTile), idle tiles are minTile.
+    static func scale(_ flow: [CGFloat], height: CGFloat) -> CGFloat {
+        var avail = height - gap * CGFloat(max(flow.count - 1, 0))
+        var open = flow.indices.filter { isActive(flow[$0]) }
+        avail -= minTile * CGFloat(flow.count - open.count)
+        // Tiles whose share would fall under the minimum are fixed at it;
+        // the rest split what's left. Repeat until nothing more drops out.
+        while true {
+            let total = open.map { flow[$0] }.reduce(0, +)
+            guard total > 0, avail > 0 else { return total > 0 ? 0.0001 : .greatestFiniteMagnitude }
+            let k = avail / total
+            let small = open.filter { k * flow[$0] < minTile }
+            if small.isEmpty || small.count == open.count { return k }
+            avail -= minTile * CGFloat(small.count)
+            open.removeAll { small.contains($0) }
         }
-        // Lift small tiles to the minimum, taking the difference from the others.
-        let short = heights.indices.filter { heights[$0] < minH }
-        if !short.isEmpty, short.count < heights.count {
-            let need = short.map { minH - heights[$0] }.reduce(0, +)
-            let others = heights.indices.filter { !short.contains($0) }
-            let pool = others.map { heights[$0] }.reduce(0, +)
-            for i in short { heights[i] = minH }
-            for i in others { heights[i] -= need * heights[i] / pool }
-        }
-        var y: CGFloat = 0
+    }
+
+    /// Stacks a column of tiles at scale k, centred vertically when the
+    /// column is shorter than the view (the other column set the scale).
+    private static func stack(_ flow: [CGFloat], k: CGFloat, x: CGFloat, width: CGFloat, height: CGFloat) -> [CGRect] {
+        guard !flow.isEmpty else { return [] }
+        let finiteK = k.isFinite && k < .greatestFiniteMagnitude ? k : 0
+        let heights = flow.map { isActive($0) ? max(finiteK * $0, minTile) : minTile }
+        let total = heights.reduce(0, +) + gap * CGFloat(flow.count - 1)
+        var y = max(0, (height - total) / 2)
         return heights.map { h in
             defer { y += h + gap }
             return CGRect(x: x, y: y, width: width, height: h)

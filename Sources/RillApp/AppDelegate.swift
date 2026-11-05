@@ -69,15 +69,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.fitPopover()
         }
         model.start()
-        // Debug: RILL_FLOW_PREVIEW=/path.png renders the flow for four sample
-        // states (charging, full, adapter too weak, on battery) and quits.
+        // Debug: RILL_FLOW_PREVIEW=/path.png renders the flow for five sample
+        // states (charging, full, adapter too weak, on battery, trickle charge) and quits.
         if let path = ProcessInfo.processInfo.environment["RILL_FLOW_PREVIEW"] {
             func sample(_ ext: Bool, _ input: Double, _ sys: Double, _ bat: Double, _ pct: Int) -> PowerSnapshot {
                 PowerSnapshot(percent: pct, state: .charging, externalConnected: ext, inputWatts: input, systemWatts: sys,
                               batteryWatts: bat, lossWatts: 0, batteryVolts: 12.5, batteryAmps: bat / 12.5)
             }
             let samples = [sample(true, 36, 22.55, 13, 62), sample(true, 17.2, 16.5, 0, 100),
-                           sample(true, 20, 31, -11, 70), sample(false, 0, 12.4, -12.4, 45)]
+                           sample(true, 20, 31, -11, 70), sample(false, 0, 12.4, -12.4, 45),
+                           sample(true, 25, 23, 2, 96)]
             let view = VStack(spacing: 14) {
                 ForEach(0..<samples.count, id: \.self) { i in
                     FlowView(snapshot: samples[i]).frame(width: 332).glassCard()
