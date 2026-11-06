@@ -42,10 +42,55 @@ final class HangDetector {
     }
 }
 
-/// The click menu on a listed app: what it is using, and quit / force quit
-/// for the app or its busiest process. Every action asks first.
+/// Quitting apps and ending processes, shared by the panel's click menu,
+/// the Apps table and the Process menu. Every action asks first, the way
+/// Activity Monitor does: one alert offering Quit, Force Quit or Cancel.
 @MainActor
 enum AppActions {
+    static func canQuit(_ app: AppUsage) -> Bool {
+        ProcessGuard.canTerminate(path: ProcessEnergyReader.path(app.responsiblePID), pid: app.responsiblePID)
+    }
+
+    /// The group's busiest process when it isn't the app itself: a
+    /// terminal's `yes` counts toward the terminal, but quitting the
+    /// terminal is the wrong fix.
+    static func busiestOtherProcess(_ app: AppUsage) -> (pid: pid_t, name: String)? {
+        guard app.topPID > 0, app.topPID != app.responsiblePID, !app.topName.isEmpty,
+              ProcessGuard.canTerminate(path: ProcessEnergyReader.path(app.topPID), pid: app.topPID) else { return nil }
+        return (app.topPID, app.topName)
+    }
+
+    static func confirmQuit(_ app: AppUsage) {
+        guard canQuit(app) else { return }
+        let name = AppIdentity.info(for: app).name
+        let running = NSRunningApplication(processIdentifier: app.responsiblePID)
+        ask(L("要退出「\(name)」吗？", "Are you sure you want to quit “\(name)”?"),
+            app.unresponsive ? L("这个应用没有响应，「退出」可能无效，可以选「强制退出」，未存储的更改会丢失。",
+                                 "This app isn't responding, so Quit may not work. Force Quit closes it at once and loses unsaved changes.")
+                             : L("「强制退出」会立即关闭应用，未存储的更改会丢失。", "Force Quit closes the app at once and loses unsaved changes."),
+            primary: L("退出", "Quit"), force: L("强制退出", "Force Quit")) { force in
+            if let running {
+                _ = force ? running.forceTerminate() : running.terminate()
+            } else {
+                signal(force ? SIGKILL : SIGTERM, pid: app.responsiblePID, name: name)
+            }
+        }
+    }
+
+    static func endProcess(pid: pid_t, name: String) {
+        ask(L("要结束进程「\(name)」吗？", "Are you sure you want to end “\(name)”?"),
+            L("「结束」请进程自行退出；「强制结束」立即终止，未存储的内容会丢失。",
+              "End asks the process to exit; Force End stops it at once and loses unsaved work."),
+            primary: L("结束", "End"), force: L("强制结束", "Force End")) { force in
+            signal(force ? SIGKILL : SIGTERM, pid: pid, name: name)
+        }
+    }
+
+    static func openActivityMonitor() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app"))
+    }
+
+    /// The panel's click menu: what the app is using, then the actions.
     static func showMenu(for app: AppUsage) {
         let info = AppIdentity.info(for: app)
         let menu = NSMenu()
@@ -57,88 +102,45 @@ enum AppActions {
         facts.append("CPU \(Format.cpu(app.cpuPercent))")
         if app.memoryBytes > 0 { facts.append(L("内存 ", "Memory ") + Format.bytes(app.memoryBytes)) }
         menu.addItem(disabled("\(info.name) · " + facts.joined(separator: " · ")))
-
-        let appPath = ProcessEnergyReader.path(app.responsiblePID)
-        let running = NSRunningApplication(processIdentifier: app.responsiblePID)
-        let appAllowed = ProcessGuard.canTerminate(path: appPath, pid: app.responsiblePID)
-
-        // The busiest process when it isn't the app itself: a terminal's
-        // `yes` counts toward the terminal, but killing the terminal is the
-        // wrong fix.
-        if app.topPID > 0, app.topPID != app.responsiblePID, !app.topName.isEmpty {
-            menu.addItem(.separator())
-            menu.addItem(disabled(L("占用最高的进程：\(app.topName)（pid \(app.topPID)）",
-                                    "Busiest process: \(app.topName) (pid \(app.topPID))")))
-            if ProcessGuard.canTerminate(path: ProcessEnergyReader.path(app.topPID), pid: app.topPID) {
-                menu.addItem(action(L("结束「\(app.topName)」", "End “\(app.topName)”")) {
-                    confirmSignal(SIGTERM, pid: app.topPID, name: app.topName, force: false)
-                })
-                menu.addItem(action(L("强制结束「\(app.topName)」", "Force End “\(app.topName)”")) {
-                    confirmSignal(SIGKILL, pid: app.topPID, name: app.topName, force: true)
-                })
-            } else {
-                menu.addItem(disabled(L("系统进程，不提供结束", "System process, can't be ended here")))
-            }
-        }
-
         menu.addItem(.separator())
-        if appAllowed {
-            if let running {
-                menu.addItem(action(L("退出 \(info.name)", "Quit \(info.name)")) {
-                    confirm(L("退出「\(info.name)」？", "Quit “\(info.name)”?"),
-                            L("会像在 Dock 里选「退出」一样，应用可能先询问是否保存。",
-                              "Same as Quit in the Dock; the app may ask to save first."),
-                            button: L("退出", "Quit"), destructive: false) { _ = running.terminate() }
-                })
-                menu.addItem(action(L("强制退出 \(info.name)", "Force Quit \(info.name)")) {
-                    confirm(L("强制退出「\(info.name)」？", "Force quit “\(info.name)”?"),
-                            L("应用会立即关闭，未保存的内容会丢失。", "The app closes at once; unsaved changes are lost."),
-                            button: L("强制退出", "Force Quit"), destructive: true) { _ = running.forceTerminate() }
-                })
-            } else {
-                menu.addItem(action(L("结束「\(info.name)」", "End “\(info.name)”")) {
-                    confirmSignal(SIGTERM, pid: app.responsiblePID, name: info.name, force: false)
-                })
-                menu.addItem(action(L("强制结束「\(info.name)」", "Force End “\(info.name)”")) {
-                    confirmSignal(SIGKILL, pid: app.responsiblePID, name: info.name, force: true)
-                })
-            }
+
+        if canQuit(app) {
+            menu.addItem(action(L("退出 \(info.name)…", "Quit \(info.name)…")) { confirmQuit(app) })
         } else {
             menu.addItem(disabled(L("系统组件或 Rill 自身，不提供退出", "Part of macOS or Rill itself, can't be quit here")))
         }
-
+        if let top = busiestOtherProcess(app) {
+            menu.addItem(action(L("结束「\(top.name)」…", "End “\(top.name)”…")) { endProcess(pid: top.pid, name: top.name) })
+        }
         menu.addItem(.separator())
-        menu.addItem(action(L("打开活动监视器", "Open Activity Monitor")) {
-            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app"))
-        })
+        menu.addItem(action(L("打开活动监视器", "Open Activity Monitor")) { openActivityMonitor() })
         menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 
-    private static func confirmSignal(_ signal: Int32, pid: pid_t, name: String, force: Bool) {
-        confirm(force ? L("强制结束「\(name)」？", "Force end “\(name)”?") : L("结束「\(name)」？", "End “\(name)”?"),
-                force ? L("进程会立即被终止（SIGKILL），未保存的内容会丢失。", "The process is killed at once (SIGKILL); unsaved work is lost.")
-                      : L("向进程发送结束请求（SIGTERM），进程可以先自行收尾。", "Asks the process to end (SIGTERM); it can clean up first."),
-                button: force ? L("强制结束", "Force End") : L("结束", "End"), destructive: force) {
-            if kill(pid, signal) != 0 {
-                let err = String(cString: strerror(errno))
-                let alert = NSAlert()
-                alert.messageText = L("没能结束「\(name)」", "Couldn't end “\(name)”")
-                alert.informativeText = err
-                alert.runModal()
-            }
-        }
-    }
-
-    private static func confirm(_ title: String, _ detail: String, button: String, destructive: Bool, then run: @escaping () -> Void) {
+    /// Alert with the default action, Cancel, and the forceful action on the
+    /// leading side, as in Activity Monitor.
+    private static func ask(_ title: String, _ detail: String, primary: String, force: String, then run: @escaping (_ force: Bool) -> Void) {
         NSApp.activate()
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = detail
-        alert.alertStyle = destructive ? .critical : .warning
-        let ok = alert.addButton(withTitle: button)
-        ok.hasDestructiveAction = destructive
+        alert.addButton(withTitle: primary)
         alert.addButton(withTitle: L("取消", "Cancel")).keyEquivalent = "\u{1b}"
-        if alert.runModal() == .alertFirstButtonReturn { run() }
+        let f = alert.addButton(withTitle: force)
+        f.hasDestructiveAction = true
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: run(false)
+        case .alertThirdButtonReturn: run(true)
+        default: break
+        }
+    }
+
+    private static func signal(_ sig: Int32, pid: pid_t, name: String) {
+        guard kill(pid, sig) != 0 else { return }
+        let alert = NSAlert()
+        alert.messageText = L("没能结束「\(name)」", "Couldn't end “\(name)”")
+        alert.informativeText = String(cString: strerror(errno))
+        alert.runModal()
     }
 
     private static func disabled(_ title: String) -> NSMenuItem {

@@ -54,77 +54,131 @@ struct HeavyAppsRow: View {
     }
 }
 
-/// Dashboard card: the busiest apps right now, heavy ones marked.
-struct EnergyAppsCard: View {
-    let top: [AppUsage]
-    let heavy: [AppUsage]
-    let measured: Bool
+/// The Apps page: every app with measurable activity, in a sortable table
+/// like Activity Monitor's. Select a row and use the toolbar button, the
+/// context menu or Process ▸ Quit (⌥⌘Q) to quit it.
+struct AppsPage: View {
+    @ObservedObject var model: PowerModel
+    @ObservedObject var state = DashboardState.shared
+    @State private var sortOrder = [KeyPathComparator(\AppRow.watts, order: .reverse)]
+
+    struct AppRow: Identifiable {
+        let usage: AppUsage
+        let name: String
+        let icon: NSImage
+        var id: String { usage.id }
+        var watts: Double { usage.watts }
+        var cpu: Double { usage.cpuPercent }
+        var memory: UInt64 { usage.memoryBytes }
+        /// Hung apps sort above everything when sorting by status.
+        var status: Int { usage.unresponsive ? 1 : 0 }
+    }
+
+    private var visible: [AppUsage] {
+        if state.allProcesses { return model.allApps }
+        let dock = Set(NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }.map(\.processIdentifier))
+        return model.allApps.filter { $0.unresponsive || dock.contains($0.responsiblePID) }
+    }
+
+    private var rows: [AppRow] {
+        visible.map { u in
+            let info = AppIdentity.info(for: u)
+            return AppRow(usage: u, name: info.name, icon: info.icon)
+        }
+        .sorted(using: sortOrder)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(L("耗电应用", "Energy by App")).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
-                Spacer()
-                Text(L("CPU 能耗，近 20 秒平均；≥ 1 W 记为大量耗电；点按应用可退出", "CPU energy, 20-second average; 1 W or more counts as significant; click an app to quit it"))
-                    .font(.system(size: 11)).foregroundStyle(Color.secondary)
-            }
-            if top.isEmpty {
-                Text(measured ? L("没有应用在明显耗电（都低于 0.05 W）", "No app is drawing noticeable power (all under 0.05 W)") : L("正在统计，几秒后出现", "Measuring, results in a few seconds"))
-                    .font(.system(size: 13)).foregroundStyle(Color.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 60)
+        Group {
+            if model.allApps.isEmpty {
+                ContentUnavailableView(L("正在统计", "Measuring"), systemImage: "hourglass",
+                                       description: Text(L("几秒后出现各应用的用量。", "App usage appears in a few seconds.")))
             } else {
-                let peak = max(top.first?.watts ?? 1, AppEnergyTracker.enterWatts)
-                ForEach(top) { app in
-                    let info = AppIdentity.info(for: app)
-                    let isHeavy = heavy.contains { $0.key == app.key }
-                    Button { AppActions.showMenu(for: app) } label: {
-                    HStack(spacing: 10) {
-                        Image(nsImage: info.icon).resizable().frame(width: 22, height: 22)
-                        HStack(spacing: 6) {
-                            Text(info.name)
-                                .font(.system(size: 13, weight: isHeavy ? .semibold : .regular))
-                                .foregroundStyle(Color.primary)
-                                .lineLimit(1)
-                            if app.unresponsive {
-                                Text(L("未响应", "Not responding"))
-                                    .font(.system(size: 10.5, weight: .semibold))
-                                    .foregroundStyle(Color.white)
-                                    .padding(.horizontal, 6).padding(.vertical, 1.5)
-                                    .background(Capsule().fill(Color.red))
-                                    .fixedSize()
-                            }
-                        }
-                        .frame(width: 210, alignment: .leading)
-                        GeometryReader { g in
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(isHeavy ? Palette.discharge : Palette.system.opacity(0.55))
-                                .frame(width: max(3, g.size.width * CGFloat(min(1, app.watts / peak))), height: 6)
-                                .frame(maxHeight: .infinity, alignment: .center)
-                        }
-                        .frame(height: 22)
-                        Text("CPU " + Format.cpu(app.cpuPercent))
-                            .font(.system(size: 12).monospacedDigit())
-                            .foregroundStyle(Color.secondary)
-                            .frame(width: 76, alignment: .trailing)
-                        Text(app.memoryBytes > 0 ? Format.bytes(app.memoryBytes) : "–")
-                            .font(.system(size: 12).monospacedDigit())
-                            .foregroundStyle(Color.secondary)
-                            .frame(width: 64, alignment: .trailing)
-                        Text(PowerFormat.watts(app.watts))
-                            .font(.system(size: 13).monospacedDigit())
-                            .foregroundStyle(isHeavy ? Color.primary : Color.secondary)
-                            .frame(width: 64, alignment: .trailing)
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
+                table
             }
         }
-        .padding(18)
-        .glassCard()
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Picker(L("显示", "Show"), selection: $state.allProcesses) {
+                    Text(L("应用", "Apps")).tag(false)
+                    Text(L("所有进程", "All Processes")).tag(true)
+                }
+                .pickerStyle(.menu)
+                .help(L("只看 Dock 里的应用，或所有进程", "Dock apps only, or every process"))
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if let app = selectedUsage { AppActions.confirmQuit(app) }
+                } label: {
+                    Label(L("退出应用", "Quit App"), systemImage: "xmark.octagon")
+                }
+                .help(L("退出所选应用", "Quit the selected app"))
+                .disabled(selectedUsage.map { !AppActions.canQuit($0) } ?? true)
+            }
+        }
+    }
+
+    private var selectedUsage: AppUsage? {
+        guard let id = state.selectedApp else { return nil }
+        return model.allApps.first { $0.id == id }
+    }
+
+    private var table: some View {
+        Table(rows, selection: $state.selectedApp, sortOrder: $sortOrder) {
+            TableColumn(L("应用", "App"), value: \.name) { row in
+                HStack(spacing: 6) {
+                    Image(nsImage: row.icon).resizable().frame(width: 16, height: 16)
+                    Text(row.name)
+                    if row.usage.unresponsive {
+                        Text(L("（未响应）", "(Not Responding)")).foregroundStyle(.red)
+                    }
+                }
+            }
+            .width(min: 180, ideal: 240)
+            TableColumn(L("能耗", "Energy"), value: \.watts) { row in
+                Text(PowerFormat.watts(row.watts)).monospacedDigit()
+                    .fontWeight(row.watts >= AppEnergyTracker.enterWatts ? .semibold : .regular)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .width(min: 60, ideal: 80)
+            TableColumn("CPU", value: \.cpu) { row in
+                Text(Format.cpu(row.cpu)).monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .width(min: 60, ideal: 70)
+            TableColumn(L("内存", "Memory"), value: \.memory) { row in
+                Text(row.memory > 0 ? Format.bytes(row.memory) : "–").monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .width(min: 60, ideal: 80)
+            TableColumn(L("最忙的进程", "Busiest Process"), value: \.usage.topName) { row in
+                Text(row.usage.topName.isEmpty ? "–" : row.usage.topName)
+                    .foregroundStyle(.secondary)
+            }
+            .width(min: 100, ideal: 160)
+        }
+        .alternatingRowBackgrounds()
+        .contextMenu(forSelectionType: AppUsage.ID.self) { ids in
+            if let id = ids.first, let app = model.allApps.first(where: { $0.id == id }) {
+                AppContextMenu(app: app)
+            }
+        }
+    }
+}
+
+/// The same actions as the panel's click menu, as SwiftUI menu items.
+struct AppContextMenu: View {
+    let app: AppUsage
+
+    var body: some View {
+        let info = AppIdentity.info(for: app)
+        if AppActions.canQuit(app) {
+            Button(L("退出 \(info.name)…", "Quit \(info.name)…")) { AppActions.confirmQuit(app) }
+        }
+        if let top = AppActions.busiestOtherProcess(app) {
+            Button(L("结束「\(top.name)」…", "End “\(top.name)”…")) { AppActions.endProcess(pid: top.pid, name: top.name) }
+        }
+        Divider()
+        Button(L("打开活动监视器", "Open Activity Monitor")) { AppActions.openActivityMonitor() }
     }
 }

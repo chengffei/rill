@@ -71,6 +71,8 @@ func durationText(_ minutes: Int) -> String {
     PowerFormat.duration(minutes: minutes, english: !AppSettings.isChinese)
 }
 
+/// One pane of standard grouped settings. Changes apply at once, as in
+/// System Settings; there is no Save button.
 struct SettingsView: View {
     @ObservedObject var settings = AppSettings.shared
 
@@ -80,21 +82,27 @@ struct SettingsView: View {
                 Picker(L("语言", "Language"), selection: $settings.language) {
                     ForEach(AppLanguage.allCases) { Text($0.label).tag($0) }
                 }
-            }
-            Section {
-                Toggle(L("开机启动", "Launch at Login"), isOn: Binding(
+                Toggle(L("登录时打开", "Open at Login"), isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { settings.setLaunchAtLogin($0) }))
+            } header: {
+                Text(L("通用", "General"))
+            } footer: {
                 if let e = settings.loginError {
-                    Text(e).font(.caption).foregroundStyle(.red)
+                    Text(e).foregroundStyle(.red)
                 }
-                Toggle(L("在菜单栏显示实时功率", "Show Live Power in Menu Bar"), isOn: $settings.showsPower)
+            }
+            Section {
+                Toggle(L("显示实时功率", "Show Live Power"), isOn: $settings.showsPower)
+            } header: {
+                Text(L("菜单栏", "Menu Bar"))
+            } footer: {
+                Text(L("在电池图标旁显示充电器输入或电池放电的瓦数。", "Shows charger input or battery discharge in watts next to the battery icon."))
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
-        .scrollIndicators(.never)
-        .frame(width: 420)
+        .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
         .id(settings.language)
         .onAppear { settings.refreshLaunchAtLogin() }

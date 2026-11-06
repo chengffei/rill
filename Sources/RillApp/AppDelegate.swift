@@ -22,43 +22,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    /// The main window: sidebar pages in a standard unified toolbar window.
+    /// The title is the current page (Apple: don't title windows with the
+    /// app name); SwiftUI's navigationTitle and toolbar reach it by bridging.
     func openDashboard() {
         if dashboard == nil {
-            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 860),
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 680),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
-            w.title = "Rill"
-            w.titlebarAppearsTransparent = true
             w.toolbarStyle = .unified
             w.appearance = NSAppearance(named: .aqua)
             w.isReleasedWhenClosed = false
-            let hosting = NSHostingController(rootView: DashboardView(model: model, onOpenSettings: { [weak self] in self?.openSettings() }))
-            // Lets the SwiftUI .toolbar (the settings button) reach this window.
-            hosting.sceneBridgingOptions = [.toolbars]
+            let hosting = NSHostingController(rootView: DashboardView(model: model))
+            hosting.sceneBridgingOptions = .all
             w.contentViewController = hosting
-            w.setContentSize(NSSize(width: 1040, height: 860))
+            w.setContentSize(NSSize(width: 980, height: 680))
             w.center()
-            w.setFrameAutosaveName("RillDashboard")
+            w.setFrameAutosaveName("RillMainWindow")
             w.delegate = self
             dashboard = w
         }
         model.dashboardVisible = true
+        showInDock(true)
         NSApp.activate(ignoringOtherApps: true)
         dashboard?.makeKeyAndOrderFront(nil)
     }
 
+    /// Settings: one pane, so the title is "Rill Settings"; minimize and zoom
+    /// stay dimmed; opened from the app menu or ⌘, (Apple HIG, Settings).
     func openSettings() {
         if settingsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
             w.styleMask = [.titled, .closable]
             w.appearance = NSAppearance(named: .aqua)
             w.isReleasedWhenClosed = false
-            w.title = L("设置", "Settings")
+            w.title = L("Rill 设置", "Rill Settings")
             w.center()
+            w.setFrameAutosaveName("RillSettings")
+            w.delegate = self
             settingsWindow = w
         }
+        showInDock(true)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    /// Rill is a menu bar app with no Dock icon. While one of its windows is
+    /// open it becomes a regular app, so the window gets a Dock icon, ⌘-Tab
+    /// and the app menu (where Settings… and the commands live); when the
+    /// last window closes it goes back to the menu bar only.
+    private func showInDock(_ on: Bool) {
+        let policy: NSApplication.ActivationPolicy = on ? .regular : .accessory
+        guard NSApp.activationPolicy() != policy else { return }
+        NSApp.setActivationPolicy(policy)
+        if on { NSApp.mainMenu = MainMenu.build(target: self) }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -96,8 +113,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.updateStatusItem(self.lastSnapshot)
         }.store(in: &subscriptions)
         settings.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
-            self?.settingsWindow?.title = L("设置", "Settings")
-            self?.fitPopover()
+            guard let self else { return }
+            self.settingsWindow?.title = L("Rill 设置", "Rill Settings")
+            if NSApp.activationPolicy() == .regular { NSApp.mainMenu = MainMenu.build(target: self) }
+            self.fitPopover()
         }.store(in: &subscriptions)
         // Debug: RILL_FLOW_PREVIEW=/path.png renders the flow for five sample
         // states (charging, full, adapter too weak, on battery, trickle charge) and quits.
@@ -124,6 +143,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
+        // Debug: RILL_OPEN_DASHBOARD=apps (or overview, history, battery) opens
+        // the main window on that page at launch, for screenshots.
+        if let page = ProcessInfo.processInfo.environment["RILL_OPEN_DASHBOARD"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                if let p = DashboardPage(rawValue: page) { DashboardState.shared.page = p }
+                self?.openDashboard()
+            }
+        }
+
         // Debug: RILL_OPEN_SETTINGS=1 opens the Settings window at launch, for screenshots.
         if ProcessInfo.processInfo.environment["RILL_OPEN_SETTINGS"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.openSettings() }
@@ -146,16 +174,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Debug: RILL_SNAPSHOT=/path.png renders the panel (RILL_SNAPSHOT_DASHBOARD=1 the
-        // Dashboard) after a few samples and quits.
+        // Debug: RILL_SNAPSHOT=/path.png renders the panel after a few samples and
+        // quits. The main window is captured with screencapture -l instead.
         if let path = ProcessInfo.processInfo.environment["RILL_SNAPSHOT"] {
-            let dash = ProcessInfo.processInfo.environment["RILL_SNAPSHOT_DASHBOARD"] != nil
             model.popoverVisible = true
-            model.dashboardVisible = dash
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) { [model] in
-                let content = dash
-                    ? AnyView(DashboardView(model: model, onOpenSettings: {}, scrolls: false).frame(width: 1040))
-                    : AnyView(PopoverView(model: model, onOpenDashboard: {}))
+                let content = PopoverView(model: model, onOpenDashboard: {})
                 let renderer = ImageRenderer(content: content.environment(\.colorScheme, .light))
                 renderer.scale = 2
                 if let cg = renderer.cgImage {
@@ -244,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         power.target = self
         power.state = showsPower ? .on : .off
         menu.addItem(power)
-        let login = NSMenuItem(title: L("开机启动", "Launch at Login"), action: #selector(toggleLogin), keyEquivalent: "")
+        let login = NSMenuItem(title: L("登录时打开", "Open at Login"), action: #selector(toggleLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
@@ -258,8 +282,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = nil
     }
 
-    @objc private func openDashboardFromMenu() { openDashboard() }
-    @objc private func openSettingsFromMenu() { openSettings() }
+    @objc func openDashboardFromMenu() { openDashboard() }
+    @objc func openSettingsFromMenu() { openSettings() }
+
+    @objc func showPage(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let page = DashboardPage(rawValue: raw) else { return }
+        DashboardState.shared.page = page
+        openDashboard()
+    }
+
+    @objc func quitSelectedApp(_ sender: Any?) {
+        if let app = selectedApp { AppActions.confirmQuit(app) }
+    }
+
+    @objc func endBusiestProcess(_ sender: Any?) {
+        if let app = selectedApp, let top = AppActions.busiestOtherProcess(app) {
+            AppActions.endProcess(pid: top.pid, name: top.name)
+        }
+    }
+
+    @objc func openActivityMonitor(_ sender: Any?) { AppActions.openActivityMonitor() }
+
+    /// The row selected on the Apps page, when that page is showing.
+    private var selectedApp: AppUsage? {
+        let state = DashboardState.shared
+        guard dashboard?.isVisible == true, state.page == .apps, let id = state.selectedApp else { return nil }
+        return model.allApps.first { $0.id == id }
+    }
 
     @objc private func toggleShowsPower() {
         settings.showsPower.toggle()
@@ -279,9 +328,25 @@ extension AppDelegate: NSPopoverDelegate {
 
 extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        if (notification.object as? NSWindow) === dashboard { model.dashboardVisible = false }
+        let closing = notification.object as? NSWindow
+        if closing === dashboard { model.dashboardVisible = false }
+        let othersOpen = [dashboard, settingsWindow].contains { $0 != nil && $0 !== closing && $0!.isVisible }
+        if !othersOpen { showInDock(false) }
     }
 
     func windowDidMiniaturize(_ notification: Notification) { model.dashboardVisible = false }
     func windowDidDeminiaturize(_ notification: Notification) { model.dashboardVisible = true }
+}
+
+extension AppDelegate: NSMenuItemValidation {
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        switch item.action {
+        case #selector(quitSelectedApp(_:)): return selectedApp.map(AppActions.canQuit) ?? false
+        case #selector(endBusiestProcess(_:)): return selectedApp.flatMap(AppActions.busiestOtherProcess) != nil
+        case #selector(showPage(_:)):
+            item.state = (dashboard?.isVisible == true && (item.representedObject as? String) == DashboardState.shared.page.rawValue) ? .on : .off
+            return true
+        default: return true
+        }
+    }
 }
