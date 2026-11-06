@@ -18,6 +18,9 @@ final class PowerModel: ObservableObject {
 
     private let energyReader = ProcessEnergyReader()
     private var energyTracker = AppEnergyTracker(timeConstant: 20)
+    private let hangDetector = HangDetector()
+    /// Responsible pid and bundle path of apps the window server reports hung.
+    private var hung: [(pid: pid_t, key: String?)] = []
     private var tick = 0
 
     private let store = HistoryStore(directory: ProcessInfo.processInfo.environment["RILL_HISTORY_DIR"].map { URL(fileURLWithPath: $0) })
@@ -67,6 +70,7 @@ final class PowerModel: ObservableObject {
         tick += 1
         if tick % 2 == 1 {
             energyTracker.ingest(energyReader.read(), at: now)
+            hung = hangDetector.check().map { ($0.processIdentifier, $0.bundleURL?.path) }
         }
         // The panel's size depends on the snapshot (adapter rows come and go),
         // so keep it current even while closed; the popover is sized from it
@@ -105,14 +109,34 @@ final class PowerModel: ObservableObject {
     private func publish() {
         snapshot = latest
         history = latestHistory
-        let heavy = energyTracker.heavyApps()
+        let all = energyTracker.usages().map(markHung)
+        let stuck = hungUsages(from: all)
+        let stuckKeys = Set(stuck.map(\.key))
+        // Hung apps first: they need attention even at 0 W.
+        let heavy = stuck + energyTracker.heavyApps().map(markHung).filter { !stuckKeys.contains($0.key) }
         if heavy != heavyApps { heavyApps = heavy }
         // Apps under 0.05 W tell nothing; leave them out.
-        let top = Array(energyTracker.usages().filter { $0.watts >= 0.05 }.prefix(5))
+        let top = stuck + Array(all.filter { $0.watts >= 0.05 && !stuckKeys.contains($0.key) }.prefix(5))
         if dashboardVisible, !energyMeasured, !energyTracker.usages().isEmpty { energyMeasured = true }
         if dashboardVisible, top != topApps { topApps = top }
         if dashboardVisible {
             minutes = savedMinutes + (aggregator.partial().map { [$0] } ?? [])
+        }
+    }
+
+    private func markHung(_ u: AppUsage) -> AppUsage {
+        var u = u
+        u.unresponsive = hung.contains { $0.pid == u.responsiblePID || $0.key == u.key }
+        return u
+    }
+
+    /// One entry per hung app, taken from the tracker when it has one.
+    private func hungUsages(from all: [AppUsage]) -> [AppUsage] {
+        hung.map { h in
+            if let u = all.first(where: { $0.unresponsive && ($0.responsiblePID == h.pid || $0.key == h.key) }) { return u }
+            var u = AppUsage(key: h.key ?? "pid \(h.pid)", responsiblePID: h.pid, watts: 0)
+            u.unresponsive = true
+            return u
         }
     }
 }

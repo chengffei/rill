@@ -15,21 +15,45 @@ public struct AppUsage: Equatable, Sendable, Identifiable {
     public var responsiblePID: pid_t
     /// Smoothed watts.
     public var watts: Double
+    /// Smoothed CPU, 100 = one core fully busy (as in Activity Monitor).
+    public var cpuPercent: Double = 0
+    /// Sum of the group's physical footprint, latest reading.
+    public var memoryBytes: UInt64 = 0
+    /// The group's busiest process in the last reading, and its name; it is
+    /// often not the app itself (a terminal's `yes`, a browser's renderer).
+    public var topPID: pid_t = 0
+    public var topName: String = ""
+    /// Set by the app layer when the window server reports the app as hung.
+    public var unresponsive: Bool = false
     public var id: String { key }
+
+    public init(key: String, responsiblePID: pid_t, watts: Double) {
+        self.key = key
+        self.responsiblePID = responsiblePID
+        self.watts = watts
+    }
 }
 
-/// One reading of a process's energy counter.
+/// One reading of a process's counters.
 public struct ProcessEnergy: Equatable, Sendable {
     public var pid: pid_t
     public var energyNJ: UInt64
     public var appKey: String
     public var responsiblePID: pid_t
+    /// User plus system CPU time, nanoseconds.
+    public var cpuNS: UInt64
+    public var footprint: UInt64
+    public var name: String
 
-    public init(pid: pid_t, energyNJ: UInt64, appKey: String, responsiblePID: pid_t) {
+    public init(pid: pid_t, energyNJ: UInt64, appKey: String, responsiblePID: pid_t,
+                cpuNS: UInt64 = 0, footprint: UInt64 = 0, name: String = "") {
         self.pid = pid
         self.energyNJ = energyNJ
         self.appKey = appKey
         self.responsiblePID = responsiblePID
+        self.cpuNS = cpuNS
+        self.footprint = footprint
+        self.name = name
     }
 }
 
@@ -44,9 +68,12 @@ public struct AppEnergyTracker: Sendable {
     public static let exitWatts = 0.7
     public let timeConstant: TimeInterval
 
-    private var last: [pid_t: UInt64] = [:]
+    private var last: [pid_t: (energy: UInt64, cpu: UInt64)] = [:]
     private var lastDate: Date?
     private var averages: [String: Double] = [:]
+    private var cpuAverages: [String: Double] = [:]
+    private var memory: [String: UInt64] = [:]
+    private var top: [String: (pid: pid_t, name: String)] = [:]
     private var responsible: [String: pid_t] = [:]
     private var heavy: Set<String> = []
 
@@ -59,28 +86,50 @@ public struct AppEnergyTracker: Sendable {
     @discardableResult
     public mutating func ingest(_ readings: [ProcessEnergy], at date: Date) -> [AppUsage] {
         defer { lastDate = date }
-        var current: [pid_t: UInt64] = [:]
+        var current: [pid_t: (energy: UInt64, cpu: UInt64)] = [:]
         var instant: [String: Double] = [:]
+        var instantCPU: [String: Double] = [:]
+        var topRate: [String: Double] = [:]
+        var mem: [String: UInt64] = [:]
         let dt = lastDate.map { date.timeIntervalSince($0) } ?? 0
         for r in readings {
-            current[r.pid] = r.energyNJ
+            current[r.pid] = (r.energyNJ, r.cpuNS)
             responsible[r.appKey] = r.responsiblePID
+            mem[r.appKey, default: 0] += r.footprint
             // A process seen for the first time has no baseline; a counter
             // that went down belongs to a reused pid.
-            guard dt > 0, let before = last[r.pid], r.energyNJ >= before else { continue }
-            instant[r.appKey, default: 0] += Double(r.energyNJ - before) / 1e9 / dt
+            guard dt > 0, let before = last[r.pid], r.energyNJ >= before.energy else { continue }
+            let w = Double(r.energyNJ - before.energy) / 1e9 / dt
+            instant[r.appKey, default: 0] += w
+            let cpu = r.cpuNS >= before.cpu ? Double(r.cpuNS - before.cpu) / 1e9 / dt * 100 : 0
+            instantCPU[r.appKey, default: 0] += cpu
+            // Rank by CPU first; energy only breaks ties for processes the
+            // CPU counter misses.
+            let rate = cpu + w
+            if rate > topRate[r.appKey] ?? -1 {
+                topRate[r.appKey] = rate
+                top[r.appKey] = (r.pid, r.name)
+            }
         }
         last = current
+        memory = mem
         guard dt > 0 else { return [] }
 
         let keep = 1 - exp(-dt / timeConstant)
         var next: [String: Double] = [:]
+        var nextCPU: [String: Double] = [:]
         for key in Set(averages.keys).union(instant.keys) {
             let a = averages[key] ?? 0
             let v = a + ((instant[key] ?? 0) - a) * keep
-            if v > 0.005 || instant[key] != nil { next[key] = v }
+            if v > 0.005 || instant[key] != nil {
+                next[key] = v
+                let c = cpuAverages[key] ?? 0
+                nextCPU[key] = c + ((instantCPU[key] ?? 0) - c) * keep
+            }
         }
         averages = next
+        cpuAverages = nextCPU
+        top = top.filter { next[$0.key] != nil }
         for (key, w) in averages {
             if w >= Self.enterWatts { heavy.insert(key) } else if w < Self.exitWatts { heavy.remove(key) }
         }
@@ -89,8 +138,14 @@ public struct AppEnergyTracker: Sendable {
     }
 
     public func usages() -> [AppUsage] {
-        averages.map { AppUsage(key: $0.key, responsiblePID: responsible[$0.key] ?? 0, watts: $0.value) }
-            .sorted { $0.watts > $1.watts }
+        averages.map { key, watts in
+            var u = AppUsage(key: key, responsiblePID: responsible[key] ?? 0, watts: watts)
+            u.cpuPercent = cpuAverages[key] ?? 0
+            u.memoryBytes = memory[key] ?? 0
+            if let t = top[key] { u.topPID = t.pid; u.topName = t.name }
+            return u
+        }
+        .sorted { $0.watts > $1.watts }
     }
 
     /// Apps currently using significant energy, highest first.
@@ -99,12 +154,14 @@ public struct AppEnergyTracker: Sendable {
     }
 }
 
-/// Reads every readable process's energy counter.
+/// Reads every readable process's counters.
 public final class ProcessEnergyReader {
     private typealias ResponsibleFn = @convention(c) (pid_t) -> pid_t
     private let responsibleFor: ResponsibleFn?
-    /// pid → (app key, responsible pid); paths don't change for a pid's life.
-    private var cache: [pid_t: (String, pid_t)] = [:]
+    /// pid → (app key, responsible pid, name); fixed for a pid's life.
+    private var cache: [pid_t: (String, pid_t, String)] = [:]
+    /// rusage CPU times are Mach ticks (125/3 ns each on Apple silicon).
+    private let tickNS: Double
 
     public init() {
         // Exported by libsystem; the same call Activity Monitor's grouping relies on.
@@ -113,6 +170,9 @@ public final class ProcessEnergyReader {
         } else {
             responsibleFor = nil
         }
+        var tb = mach_timebase_info()
+        mach_timebase_info(&tb)
+        tickNS = tb.denom == 0 ? 1 : Double(tb.numer) / Double(tb.denom)
     }
 
     public func read() -> [ProcessEnergy] {
@@ -130,23 +190,27 @@ public final class ProcessEnergyReader {
             } == 0
             guard ok else { continue }
             seen.insert(pid)
-            let (key, resp): (String, pid_t)
+            let (key, resp, name): (String, pid_t, String)
             if let cached = cache[pid] {
-                (key, resp) = cached
+                (key, resp, name) = cached
             } else {
                 let r = responsibleFor?(pid) ?? pid
                 let owner = r > 0 ? r : pid
-                key = Self.appKey(forExecutable: Self.path(owner) ?? Self.path(pid) ?? "pid \(pid)")
+                let own = Self.path(pid)
+                key = Self.appKey(forExecutable: Self.path(owner) ?? own ?? "pid \(pid)")
                 resp = owner
-                cache[pid] = (key, resp)
+                name = own.map { ($0 as NSString).lastPathComponent } ?? "pid \(pid)"
+                cache[pid] = (key, resp, name)
             }
-            out.append(ProcessEnergy(pid: pid, energyNJ: info.ri_energy_nj, appKey: key, responsiblePID: resp))
+            let ticks = info.ri_user_time &+ info.ri_system_time
+            out.append(ProcessEnergy(pid: pid, energyNJ: info.ri_energy_nj, appKey: key, responsiblePID: resp,
+                                     cpuNS: UInt64(Double(ticks) * tickNS), footprint: info.ri_phys_footprint, name: name))
         }
         cache = cache.filter { seen.contains($0.key) }
         return out
     }
 
-    private static func path(_ pid: pid_t) -> String? {
+    public static func path(_ pid: pid_t) -> String? {
         var buf = [CChar](repeating: 0, count: 4096)
         return proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 ? String(cString: buf) : nil
     }

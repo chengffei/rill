@@ -65,3 +65,41 @@ final class AppEnergyTests: XCTestCase {
         XCTAssertNotNil(readings.first { $0.pid == getpid() })
     }
 }
+
+final class AppEnergyDetailTests: XCTestCase {
+    private let t0 = Date(timeIntervalSinceReferenceDate: 0)
+
+    /// CPU is summed per app (100 = one core); the busiest process is named; memory is the latest sum.
+    func testCPUMemoryAndTopProcess() {
+        var tracker = AppEnergyTracker(timeConstant: 20)
+        for step in 0...40 {
+            let s = UInt64(step) * 4
+            tracker.ingest([
+                ProcessEnergy(pid: 10, energyNJ: s * 100_000_000, appKey: "/Code.app", responsiblePID: 10,
+                              cpuNS: s * 50_000_000, footprint: 300 << 20, name: "Code"),          // 5 % CPU
+                ProcessEnergy(pid: 42, energyNJ: s * 3_000_000_000, appKey: "/Code.app", responsiblePID: 10,
+                              cpuNS: s * 1_000_000_000, footprint: 1 << 20, name: "yes"),          // 100 % CPU
+            ], at: t0.addingTimeInterval(Double(step) * 4))
+        }
+        let a = tracker.usages().first
+        XCTAssertEqual(a?.cpuPercent ?? 0, 105, accuracy: 1)
+        XCTAssertEqual(a?.memoryBytes, (300 << 20) + (1 << 20))
+        XCTAssertEqual(a?.topPID, 42)
+        XCTAssertEqual(a?.topName, "yes")
+    }
+
+    func testGuard() {
+        XCTAssertTrue(ProcessGuard.canTerminate(path: "/Applications/Figma.app", pid: 500, selfPID: 1))
+        XCTAssertTrue(ProcessGuard.canTerminate(path: "/usr/bin/yes", pid: 500, selfPID: 1))
+        XCTAssertFalse(ProcessGuard.canTerminate(path: "/System/Library/CoreServices/Finder.app", pid: 500, selfPID: 1))
+        XCTAssertFalse(ProcessGuard.canTerminate(path: "/usr/libexec/trustd", pid: 500, selfPID: 1))
+        XCTAssertFalse(ProcessGuard.canTerminate(path: "/Applications/Rill.app", pid: 500, selfPID: 500))
+        XCTAssertFalse(ProcessGuard.canTerminate(path: "pid 77", pid: 77, selfPID: 1))
+    }
+
+    func testLiveReadHasCPUAndFootprint() {
+        let me = ProcessEnergyReader().read().first { $0.pid == getpid() }
+        XCTAssertGreaterThan(me?.footprint ?? 0, 1 << 20)
+        XCTAssertGreaterThan(me?.cpuNS ?? 0, 0)
+    }
+}
