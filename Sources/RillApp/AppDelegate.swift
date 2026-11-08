@@ -15,6 +15,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var subscriptions: Set<AnyCancellable> = []
     private var shownSymbol = ""
     private var shownTitle = ""
+    private var appearanceObservation: NSKeyValueObservation?
+
+    private func syncPopoverAppearance() {
+        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        popover.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+    }
 
     /// Launching Rill again (Finder, Spotlight) opens the Dashboard; there is no Dock icon.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -31,7 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
             w.toolbarStyle = .unified
-            w.appearance = NSAppearance(named: .aqua)
             w.isReleasedWhenClosed = false
             let hosting = NSHostingController(rootView: DashboardView(model: model))
             hosting.sceneBridgingOptions = .all
@@ -54,7 +59,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if settingsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
             w.styleMask = [.titled, .closable]
-            w.appearance = NSAppearance(named: .aqua)
             w.isReleasedWhenClosed = false
             w.title = L("Rill 设置", "Rill Settings")
             w.center()
@@ -90,8 +94,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.delegate = self
         popover.behavior = .transient
         popover.animates = false
-        // Light only, like the rest of Felix's tools.
-        popover.appearance = NSAppearance(named: .aqua)
+        // Light, dark or system by the Appearance setting (2026-11-08). The
+        // popover gets it explicitly: left nil it would follow the status
+        // item's window, which is dark over a dark wallpaper even in light mode.
+        settings.applyAppearance()
+        syncPopoverAppearance()
+        appearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            Task { @MainActor in self?.syncPopoverAppearance() }
+        }
         let hosting = NSHostingController(rootView: PopoverView(model: model, onOpenDashboard: { [weak self] in
             self?.popover.performClose(nil)
             self?.openDashboard()

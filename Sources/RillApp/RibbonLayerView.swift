@@ -63,6 +63,22 @@ final class RibbonNSView: NSView {
 
     override var isFlipped: Bool { true }
 
+    /// labelColor resolved for this view's appearance; a bare .cgColor would
+    /// freeze whichever appearance was current when it was read.
+    private var labelCGColor: CGColor {
+        var c = NSColor.labelColor.cgColor
+        effectiveAppearance.performAsCurrentDrawingAppearance { c = NSColor.labelColor.cgColor }
+        return c
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for l in items { l.label.foregroundColor = labelCGColor }
+        CATransaction.commit()
+    }
+
     func update(_ ribbons: [RibbonLayerView.Ribbon], reduceMotion: Bool) {
         guard let root = layer else { return }
         // A different number of ribbons is a different state; rebuild.
@@ -107,7 +123,7 @@ final class RibbonNSView: NSView {
         l.label.contentsScale = window?.backingScaleFactor ?? 2
         l.label.font = font
         l.label.fontSize = 13
-        l.label.foregroundColor = NSColor.labelColor.cgColor
+        l.label.foregroundColor = labelCGColor
         l.label.alignmentMode = .center
         l.label.bounds = CGRect(x: 0, y: 0, width: ceil(size.width) + 4, height: ceil(size.height))
         l.label.string = text

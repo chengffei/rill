@@ -18,6 +18,7 @@ struct PopoverView: View {
     @ObservedObject var model: PowerModel
     var onOpenDashboard: () -> Void
     @ObservedObject private var settings = AppSettings.shared
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         GlassEffectContainer(spacing: 12) {
@@ -50,9 +51,11 @@ struct PopoverView: View {
         .padding(14)
         .frame(width: 360)
         .id(settings.language)
-        // A light wash under the cards: the popover's own glass over a dark
-        // wallpaper made the whole panel read grey (2026-11-05).
-        .background(Color(white: 0.98).opacity(0.72).ignoresSafeArea())
+        // A wash under the cards: the popover's own glass over a dark
+        // wallpaper made the whole panel read grey (2026-11-05). Dark mode
+        // gets a matching dark wash so the cards sit on an even ground.
+        .background((scheme == .dark ? Color(white: 0.12).opacity(0.6) : Color(white: 0.98).opacity(0.72))
+            .ignoresSafeArea())
     }
 
     // MARK: Header
@@ -131,7 +134,7 @@ struct PopoverView: View {
             .chartXAxis(.hidden)
             .chartYAxis {
                 AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { v in
-                    AxisGridLine().foregroundStyle(Color.black.opacity(0.06))
+                    AxisGridLine().foregroundStyle(Color.primary.opacity(0.06))
                     AxisValueLabel {
                         if let w = v.as(Double.self) { Text("\(Int(w)) W").font(.system(size: 10)) }
                     }

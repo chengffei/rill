@@ -16,6 +16,26 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 }
 
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .system: return L("跟随系统", "System")
+        case .light: return L("浅色", "Light")
+        case .dark: return L("深色", "Dark")
+        }
+    }
+    /// nil lets every window follow the system setting.
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 /// User settings, shared by the panel, the Dashboard, the menu and the
 /// Settings window. Views key their content on `language`, so switching
 /// takes effect at once without a restart.
@@ -29,6 +49,13 @@ final class AppSettings: ObservableObject {
     @Published var showsPower: Bool {
         didSet { UserDefaults.standard.set(showsPower, forKey: "showsPower") }
     }
+    /// Light, dark or the system's choice; applied app-wide through NSApp.appearance.
+    @Published var appearance: AppAppearance {
+        didSet {
+            UserDefaults.standard.set(appearance.rawValue, forKey: "appearance")
+            applyAppearance()
+        }
+    }
     /// Mirrors SMAppService; writing registers or unregisters the login item.
     @Published private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
     @Published private(set) var loginError: String?
@@ -38,6 +65,12 @@ final class AppSettings: ObservableObject {
         // language is en-CN, so "System" would have flipped it to English.
         language = AppLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .zh
         showsPower = UserDefaults.standard.object(forKey: "showsPower") as? Bool ?? true
+        appearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appearance") ?? "") ?? .system
+    }
+
+    /// Sets the app-wide appearance; windows and the popover inherit it.
+    func applyAppearance() {
+        NSApp?.appearance = appearance.nsAppearance
     }
 
     nonisolated static var isChinese: Bool {
@@ -81,6 +114,9 @@ struct SettingsView: View {
             Section {
                 Picker(L("语言", "Language"), selection: $settings.language) {
                     ForEach(AppLanguage.allCases) { Text($0.label).tag($0) }
+                }
+                Picker(L("外观", "Appearance"), selection: $settings.appearance) {
+                    ForEach(AppAppearance.allCases) { Text($0.label).tag($0) }
                 }
                 Toggle(L("登录时打开", "Open at Login"), isOn: Binding(
                     get: { settings.launchAtLogin },

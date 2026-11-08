@@ -56,3 +56,4 @@
   - 菜单栏应用没有应用菜单，所以有窗口打开时切成普通应用（Dock 图标、⌘-Tab、应用菜单），窗口全部关闭后回到纯菜单栏。菜单：Rill（关于、设置… ⌘,、隐藏、退出）、文件（关闭窗口 ⌘W）、显示（四页 ⌘1–4、边栏 ⌃⌘S、全屏）、进程（退出所选应用… ⌥⌘Q、结束最忙的进程…、打开活动监视器）、窗口。
   - 侧栏是贴边样式而不是悬浮玻璃：用最小 SwiftUI WindowGroup 对照，这台 macOS 27 上标准写法也是一样，所以不改。
   - 调试：RILL_OPEN_DASHBOARD=overview|apps|history|battery 启动即打开对应页面；RILL_SNAPSHOT_DASHBOARD 删除（ImageRenderer 画不出分栏），主窗口用 screencapture -l 截。四页和设置窗口都截图核对过；菜单栏菜单、Dock 图标切换、退出提示框没实机点过。
+- 11-08 外观设置（Felix：Rill 不跟随系统深浅色）：设置加「外观」跟随系统 / 浅色 / 深色，存 UserDefaults appearance，默认跟随系统，由 NSApp.appearance 统管；去掉原来三处强制 .aqua（主窗口、设置、面板）。面板不能留 nil：它会继承状态栏按钮窗口的外观，深色壁纸下即使浅色模式也是暗的，所以 KVO 观察 NSApp.effectiveAppearance 后显式设成 aqua 或 darkAqua。深色下改掉的固定色：glassCard 白色 tint 只在浅色用，深色用素 .regular；面板底色浅 0.98×72%、深 0.12×60%；能量流节点卡与图表网格由 black 改 primary 透明度；带子瓦数的 CATextLayer 用 performAsCurrentDrawingAppearance 取 labelColor，并在 viewDidChangeEffectiveAppearance 时重设。深色已截图核对主窗口概览页和设置窗口；面板没截到：第二个实例的状态栏按钮高度 0（被 Dimble 收起），弹不出来，等 Felix 实机看。
