@@ -11,6 +11,7 @@ enum MainMenu {
 
         let app = submenu(main, "Rill")
         app.addItem(item(L("关于 Rill", "About Rill"), #selector(NSApplication.orderFrontStandardAboutPanel(_:))))
+        app.addItem(item(L("检查更新…", "Check for Updates…"), #selector(AppDelegate.checkForUpdates(_:)), target: target))
         app.addItem(.separator())
         app.addItem(item(L("设置…", "Settings…"), #selector(AppDelegate.openSettingsFromMenu), ",", target: target))
         app.addItem(.separator())
@@ -53,6 +54,11 @@ enum MainMenu {
         window.addItem(.separator())
         window.addItem(item(L("前置全部窗口", "Bring All to Front"), #selector(NSApplication.arrangeInFront(_:))))
         NSApp.windowsMenu = window
+
+        let help = submenu(main, L("帮助", "Help"))
+        help.addItem(item(L("报告问题…", "Report an Issue…"), #selector(AppDelegate.reportIssue(_:)), target: target))
+        help.addItem(item(L("Rill 的 GitHub 主页", "Rill on GitHub"), #selector(AppDelegate.openRepoPage(_:)), target: target))
+        NSApp.helpMenu = help
 
         return main
     }

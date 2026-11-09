@@ -286,6 +286,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         prefs.target = self
         menu.addItem(prefs)
         menu.addItem(.separator())
+        let update = NSMenuItem(title: L("检查更新…", "Check for Updates…"), action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+        update.target = self
+        menu.addItem(update)
+        let issue = NSMenuItem(title: L("报告问题…", "Report an Issue…"), action: #selector(reportIssue(_:)), keyEquivalent: "")
+        issue.target = self
+        menu.addItem(issue)
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: L("退出 Rill", "Quit Rill"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
@@ -312,6 +319,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openActivityMonitor(_ sender: Any?) { AppActions.openActivityMonitor() }
+
+    @objc func checkForUpdates(_ sender: Any?) { Updates.check() }
+    @objc func reportIssue(_ sender: Any?) { Updates.reportIssue() }
+    @objc func openRepoPage(_ sender: Any?) { NSWorkspace.shared.open(Release.repoPage) }
 
     /// The row selected on the Apps page, when that page is showing.
     private var selectedApp: AppUsage? {
