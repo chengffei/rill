@@ -265,6 +265,10 @@ private struct BatteryPage: View {
                     if let v = s.adapterNegotiatedVolts, let a = s.adapterNegotiatedAmps {
                         LabeledContent(L("协商", "Negotiated"), value: String(format: "%.1f V × %.2f A", v, a))
                     }
+                    if !s.adapterProfiles.isEmpty {
+                        LabeledContent(L("支持档位", "Supported Levels"),
+                                       value: AdapterProfile.summary(s.adapterProfiles, separator: L("，", ", ")))
+                    }
                     LabeledContent(L("实际输入", "Actual Input"), value: PowerFormat.watts(s.inputWatts))
                     if let rated = s.adapterRatedWatts, rated > 0 {
                         LabeledContent(L("利用率", "Utilization"), value: String(format: "%.0f%%", s.inputWatts / Double(rated) * 100))

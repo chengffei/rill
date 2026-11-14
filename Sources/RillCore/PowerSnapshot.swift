@@ -31,6 +31,8 @@ public struct PowerSnapshot: Equatable, Sendable {
     public var adapterRatedWatts: Int?
     public var adapterNegotiatedVolts: Double?
     public var adapterNegotiatedAmps: Double?
+    /// USB-C PD levels the charger offers (UsbHvcMenu), lowest voltage first.
+    public var adapterProfiles: [AdapterProfile] = []
 
     public var cycleCount: Int?
     public var designCapacity: Int?
@@ -131,6 +133,13 @@ extension PowerSnapshot {
             minutesToFull: charging ? minutes("AvgTimeToFull") : nil,
             minutesToEmpty: external ? nil : minutes("AvgTimeToEmpty")
         )
+        if external, let menu = adapter?["UsbHvcMenu"] as? [[String: Any]] {
+            adapterProfiles = menu.compactMap { m in
+                guard let v = Self.int(m["MaxVoltage"]), let a = Self.int(m["MaxCurrent"]), v > 0 else { return nil }
+                return AdapterProfile(volts: Double(v) / 1000, amps: Double(a) / 1000)
+            }
+            .sorted { $0.volts < $1.volts }
+        }
     }
 
     static func int(_ value: Any?) -> Int? {
@@ -165,5 +174,27 @@ public enum BatteryReader {
         guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dict = props?.takeRetainedValue() as? [String: Any] else { return nil }
         return PowerSnapshot(registry: dict, date: date)
+    }
+}
+
+/// One USB-C Power Delivery level a charger offers.
+public struct AdapterProfile: Equatable, Sendable {
+    public var volts: Double
+    public var amps: Double
+
+    public init(volts: Double, amps: Double) {
+        self.volts = volts
+        self.amps = amps
+    }
+
+    /// "5 / 9 / 12 / 15 / 20 V × 3 A" when every level has the same current,
+    /// else "5 V × 3 A, 20 V × 2.25 A".
+    public static func summary(_ profiles: [AdapterProfile], separator: String = ", ") -> String {
+        func n(_ x: Double) -> String { String(format: "%g", x) }
+        guard let first = profiles.first else { return "" }
+        if profiles.allSatisfy({ $0.amps == first.amps }) {
+            return profiles.map { n($0.volts) }.joined(separator: " / ") + " V × \(n(first.amps)) A"
+        }
+        return profiles.map { "\(n($0.volts)) V × \(n($0.amps)) A" }.joined(separator: separator)
     }
 }

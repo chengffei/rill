@@ -152,4 +152,19 @@ final class MergeTests: XCTestCase {
         let s = base(percent: 100, state: .full).merging(LiveReading(inputWatts: 17, systemWatts: 16, batteryVolts: 12.7, batteryAmps: 0, temperature: nil))
         XCTAssertEqual(s.state, .full)
     }
+
+    /// A third-party 60 W PD charger reports levels but no name (2026-11-14).
+    func testAdapterProfiles() throws {
+        var d: [String: Any] = ["CurrentCapacity": 80, "ExternalConnected": true, "IsCharging": true,
+                                "Voltage": 12260, "Amperage": 2310, "InstantAmperage": 2310]
+        d["AdapterDetails"] = ["Watts": 60, "AdapterVoltage": 20000, "Current": 3000, "UsbHvcMenu": [
+            ["Index": 1, "MaxCurrent": 3000, "MaxVoltage": 9000],
+            ["Index": 0, "MaxCurrent": 3000, "MaxVoltage": 5000],
+            ["Index": 2, "MaxCurrent": 3000, "MaxVoltage": 20000],
+        ]]
+        let s = try XCTUnwrap(PowerSnapshot(registry: d))
+        XCTAssertNil(s.adapterName)
+        XCTAssertEqual(AdapterProfile.summary(s.adapterProfiles), "5 / 9 / 20 V × 3 A")
+        XCTAssertEqual(AdapterProfile.summary([.init(volts: 5, amps: 3), .init(volts: 20, amps: 2.25)]), "5 V × 3 A, 20 V × 2.25 A")
+    }
 }
