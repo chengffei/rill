@@ -169,14 +169,30 @@ private struct TodaySection: View {
         let start = Calendar.current.startOfDay(for: Date())
         let e = EnergyStats(records: minutes.filter { $0.t >= start })
         Section(L("今日", "Today")) {
-            LabeledContent(L("电脑用电", "Used by Mac"), value: String(format: "%.1f Wh", e.systemWh))
-            LabeledContent(L("充电器供电", "From Charger"), value: String(format: "%.1f Wh", e.inputWh))
-            LabeledContent(L("充入电池", "Into Battery"), value: String(format: "%.1f Wh", e.chargedWh))
-            LabeledContent(L("电池放出", "From Battery"), value: String(format: "%.1f Wh", e.dischargedWh))
-            if let avg = e.averageSystem { LabeledContent(L("平均负载", "Average Load"), value: PowerFormat.watts(avg)) }
-            if let peak = e.peakSystem { LabeledContent(L("最高分钟负载", "Peak Minute Load"), value: PowerFormat.watts(peak)) }
+            LabeledContent(L("电脑用电量", "Used by Mac"), value: EnergyStats.format(wh: e.systemWh))
+            EnergyRows(stats: e)
         }
         .monospacedDigit()
+    }
+}
+
+/// Where the Mac's energy came from, then what the battery took in, then
+/// power. The two sources add up to the Mac's total; rows that are zero for
+/// the period are left out, except the sources.
+private struct EnergyRows: View {
+    let stats: EnergyStats
+
+    var body: some View {
+        LabeledContent(L("来自电池", "From Battery"), value: EnergyStats.format(wh: stats.dischargedWh))
+        LabeledContent(L("来自充电器", "From Charger"), value: EnergyStats.format(wh: stats.systemFromChargerWh))
+        if stats.chargedWh >= 0.05 {
+            LabeledContent(L("充入电池", "Into Battery"), value: EnergyStats.format(wh: stats.chargedWh))
+        }
+        if let avg = stats.averageSystem {
+            LabeledContent(L("平均功率", "Average Power"), value: PowerFormat.watts(avg))
+                .help(L("只算 Mac 醒着、有记录的时间", "Counts only time the Mac was awake and recording"))
+        }
+        if let peak = stats.peakSystem { LabeledContent(L("最高功率（1 分钟均值）", "Peak Power (1-min avg)"), value: PowerFormat.watts(peak)) }
     }
 }
 
@@ -196,13 +212,13 @@ private struct HistoryPage: View {
         Form {
             EnergySection(minutes: model.minutes.filter { $0.t >= Date().addingTimeInterval(-state.range.seconds) },
                           range: state.range)
+            SeriesSection(title: L("电量", "Battery Level"), unit: "%", records: records, color: Palette.charge,
+                          domain: 0...100, value: { Double($0.percent) })
             Section(L("功率", "Power")) {
                 PowerChart(records: records)
                     .frame(height: 240)
                     .padding(.vertical, 6)
             }
-            SeriesSection(title: L("电量", "Battery Level"), unit: "%", records: records, color: Palette.charge,
-                          domain: 0...100, value: { Double($0.percent) })
             SeriesSection(title: L("电池温度", "Battery Temperature"), unit: "°C", records: records, color: Palette.discharge,
                           domain: nil, value: { $0.temp })
         }
@@ -304,9 +320,11 @@ enum ChartRange: String, CaseIterable, Identifiable {
 
 // MARK: - Charts
 
-/// Energy used over the chosen range: a bar per slot (5 min to a day) and
-/// the range's totals, from the raw minute records rather than the
-/// downsampled ones the line charts draw.
+/// Energy used over the chosen range. The headline is the number people
+/// come for, the Mac's total; hovering a bar swaps it for that bar's value
+/// (as Health and Screen Time do), so nothing floats over the bars. Below:
+/// where that energy came from, then the power figures behind it. Computed
+/// from raw minute records, not the downsampled ones the line charts draw.
 private struct EnergySection: View {
     let minutes: [MinuteRecord]
     let range: ChartRange
@@ -315,47 +333,31 @@ private struct EnergySection: View {
     var body: some View {
         let slots = EnergyStats.slots(minutes, size: range.slot)
         let total = EnergyStats(records: minutes)
-        Section {
+        let hit = selected.flatMap { s in slots.first { s >= $0.start && s < $0.start.addingTimeInterval(range.slot) } }
+        Section(L("电脑用电量", "Energy Used by Mac")) {
             if slots.isEmpty {
                 Text(L("还没有记录", "No history yet")).foregroundStyle(.secondary)
             } else {
-                chart(slots).frame(height: 160).padding(.vertical, 6)
-                LabeledContent(L("充电器供电", "From Charger"), value: EnergyStats.format(wh: total.inputWh))
-                LabeledContent(L("充入电池", "Into Battery"), value: EnergyStats.format(wh: total.chargedWh))
-                LabeledContent(L("电池放出", "From Battery"), value: EnergyStats.format(wh: total.dischargedWh))
-                if let avg = total.averageSystem { LabeledContent(L("平均负载", "Average Load"), value: PowerFormat.watts(avg)) }
-            }
-        } header: {
-            HStack(alignment: .firstTextBaseline) {
-                Text(L("电脑用电量", "Energy Used by Mac"))
-                Spacer()
-                if !slots.isEmpty {
-                    Text(EnergyStats.format(wh: total.systemWh)).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hit.map { slotLabel($0.start) } ?? L("\(range.label)合计", "Last \(range.label)"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(EnergyStats.format(wh: (hit?.stats ?? total).systemWh))
+                        .font(.system(size: 28, weight: .semibold))
                 }
+                .padding(.top, 4)
+                chart(slots, hit: hit).frame(height: 160).padding(.bottom, 6)
+                EnergyRows(stats: total)
             }
         }
         .monospacedDigit()
     }
 
-    private func chart(_ slots: [(start: Date, stats: EnergyStats)]) -> some View {
+    private func chart(_ slots: [(start: Date, stats: EnergyStats)], hit: (start: Date, stats: EnergyStats)?) -> some View {
         let size = range.slot
-        let hit = selected.flatMap { s in slots.first { s >= $0.start && s < $0.start.addingTimeInterval(size) } }
         return Chart {
             ForEach(slots, id: \.start) { slot in
                 bar(slot, size: size, dimmed: hit != nil && hit?.start != slot.start)
-            }
-            if let hit {
-                RuleMark(x: .value("选中", hit.start.addingTimeInterval(size / 2)))
-                    .foregroundStyle(.clear)
-                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(slotLabel(hit.start)).foregroundStyle(.secondary)
-                            Text(EnergyStats.format(wh: hit.stats.systemWh))
-                        }
-                        .font(.caption.monospacedDigit())
-                        .padding(8)
-                        .background(.regularMaterial, in: .rect(cornerRadius: 8))
-                    }
             }
         }
         .chartXScale(domain: (slots.first?.start ?? Date())...(slots.last.map { $0.start.addingTimeInterval(size) } ?? Date()))
@@ -428,7 +430,7 @@ private struct PowerChart: View {
                 if let r = nearest {
                     RuleMark(x: .value("选中", r.t))
                         .foregroundStyle(Color.primary.opacity(0.25))
-                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(r.t, format: .dateTime.month().day().hour().minute())
                                     .foregroundStyle(.secondary)

@@ -86,6 +86,9 @@ public struct EnergyStats: Equatable, Sendable {
     public var dischargedWh = 0.0
     public var averageSystem: Double?
     public var peakSystem: Double?
+    /// The Mac's share that came from the charger: whatever the battery
+    /// didn't supply. With `dischargedWh` it adds up to `systemWh`.
+    public var systemFromChargerWh: Double { max(0, systemWh - dischargedWh) }
 
     public init(records: [MinuteRecord]) {
         var weighted = 0.0, seconds = 0.0

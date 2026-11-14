@@ -98,4 +98,16 @@ final class HistoryTests: XCTestCase {
         XCTAssertEqual(EnergyStats.format(wh: 8.44), "8.4 Wh")
         XCTAssertEqual(EnergyStats.format(wh: 1350), "1.35 kWh")
     }
+
+    /// The two sources add up to the Mac's total.
+    func testMacEnergyBySource() {
+        let t = Date(timeIntervalSinceReferenceDate: 0)
+        let e = EnergyStats(records: [
+            MinuteRecord(t: t, input: 15, system: 10, battery: 5, temp: nil, percent: 50, seconds: 3600),
+            MinuteRecord(t: t.addingTimeInterval(3600), input: 6, system: 10, battery: -4, temp: nil, percent: 50, seconds: 3600),
+        ])
+        XCTAssertEqual(e.dischargedWh, 4, accuracy: 1e-9)
+        XCTAssertEqual(e.systemFromChargerWh, 16, accuracy: 1e-9)
+        XCTAssertEqual(e.dischargedWh + e.systemFromChargerWh, e.systemWh, accuracy: 1e-9)
+    }
 }
