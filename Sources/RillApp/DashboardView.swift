@@ -257,8 +257,10 @@ private struct BatteryPage: View {
                 if let c = s.cycleCount { LabeledContent(L("循环次数", "Cycle Count"), value: "\(c)") }
             }
             Section(L("充电器", "Charger")) {
-                if let name = s.adapterName {
-                    LabeledContent(L("型号", "Model"), value: name)
+                // Third-party chargers often report watts and voltages but no
+                // name; the connection, not the name, decides this section.
+                if s.externalConnected {
+                    LabeledContent(L("型号", "Model"), value: s.adapterName ?? L("未提供", "Not reported"))
                     if let w = s.adapterRatedWatts { LabeledContent(L("额定功率", "Rated Power"), value: "\(w) W") }
                     if let v = s.adapterNegotiatedVolts, let a = s.adapterNegotiatedAmps {
                         LabeledContent(L("协商", "Negotiated"), value: String(format: "%.1f V × %.2f A", v, a))

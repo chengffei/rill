@@ -151,8 +151,8 @@ struct PopoverView: View {
 
     private func details(_ s: PowerSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let name = s.adapterName {
-                row(L("充电器", "Charger"), name)
+            if s.externalConnected {
+                row(L("充电器", "Charger"), s.adapterName ?? s.adapterRatedWatts.map { L("\($0) W 充电器", "\($0) W charger") } ?? L("已连接", "Connected"))
                 if let v = s.adapterNegotiatedVolts, let a = s.adapterNegotiatedAmps {
                     let rated = s.adapterRatedWatts.map { L("，\($0) W", ", \($0) W") } ?? ""
                     row(L("协商", "Negotiated"), String(format: "%.1f V × %.2f A", v, a) + rated)
