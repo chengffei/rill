@@ -102,4 +102,31 @@ final class AppEnergyDetailTests: XCTestCase {
         XCTAssertGreaterThan(me?.footprint ?? 0, 1 << 20)
         XCTAssertGreaterThan(me?.cpuNS ?? 0, 0)
     }
+
+    /// Each group lists its processes, smoothed on their own, busiest first.
+    func testProcessesPerGroup() {
+        var tracker = AppEnergyTracker(timeConstant: 20)
+        for step in 0...40 {
+            let s = UInt64(step) * 4
+            tracker.ingest([
+                ProcessEnergy(pid: 10, energyNJ: s * 100_000_000, appKey: "/Code.app", responsiblePID: 10,
+                              cpuNS: s * 50_000_000, footprint: 300 << 20, name: "Code"),
+                ProcessEnergy(pid: 42, energyNJ: s * 3_000_000_000, appKey: "/Code.app", responsiblePID: 10,
+                              cpuNS: s * 1_000_000_000, footprint: 1 << 20, name: "yes"),
+            ], at: t0.addingTimeInterval(Double(step) * 4))
+        }
+        let p = tracker.usages().first?.processes ?? []
+        XCTAssertEqual(p.map(\.pid), [42, 10])
+        XCTAssertEqual(p.first?.cpuPercent ?? 0, 100, accuracy: 1)
+        XCTAssertEqual(p.first?.watts ?? 0, 3, accuracy: 0.05)
+        XCTAssertEqual(p.last?.memoryBytes, 300 << 20)
+    }
+
+    /// Executables named after their version get a folder's name instead.
+    func testDisplayName() {
+        XCTAssertEqual(ProcessEnergyReader.displayName(forExecutable: "/Users/a/.local/share/claude/versions/2.1.325"), "claude")
+        XCTAssertEqual(ProcessEnergyReader.displayName(forExecutable: "/opt/tool/v1.2/bin/1.2.3"), "tool")
+        XCTAssertEqual(ProcessEnergyReader.displayName(forExecutable: "/usr/bin/yes"), "yes")
+        XCTAssertEqual(ProcessEnergyReader.displayName(forExecutable: "/x/node22"), "node22")
+    }
 }

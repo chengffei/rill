@@ -54,38 +54,78 @@ struct HeavyAppsRow: View {
     }
 }
 
-/// The Apps page: every app with measurable activity, in a sortable table
-/// like Activity Monitor's. Select a row and use the toolbar button, the
-/// context menu or Process ▸ Quit (⌥⌘Q) to quit it.
+/// The Apps page: every app and background service with activity, in one
+/// sortable table like Activity Monitor's. Each group opens to its
+/// processes, so a terminal's `yes` or a browser's renderer shows under the
+/// app it counts toward. Select an app and use the toolbar button, the
+/// context menu or Process ▸ Quit (⌥⌘Q) to quit it; a process row offers End.
 struct AppsPage: View {
     @ObservedObject var model: PowerModel
     @ObservedObject var state = DashboardState.shared
     @State private var sortOrder = [KeyPathComparator(\AppRow.watts, order: .reverse)]
+    @State private var search = ""
 
     struct AppRow: Identifiable {
-        let usage: AppUsage
+        let id: String
         let name: String
-        let icon: NSImage
-        var id: String { usage.id }
-        var watts: Double { usage.watts }
-        var cpu: Double { usage.cpuPercent }
-        var memory: UInt64 { usage.memoryBytes }
-        /// Hung apps sort above everything when sorting by status.
-        var status: Int { usage.unresponsive ? 1 : 0 }
+        let icon: NSImage?
+        let watts: Double
+        let cpu: Double
+        let memory: UInt64
+        /// Groups: the busiest process. Processes: empty.
+        let busiest: String
+        let usage: AppUsage
+        /// Set on process rows.
+        var process: ProcessUsage?
+        var children: [AppRow]?
     }
 
-    private var visible: [AppUsage] {
-        if state.allProcesses { return model.allApps }
-        let dock = Set(NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }.map(\.processIdentifier))
-        return model.allApps.filter { $0.unresponsive || dock.contains($0.responsiblePID) }
-    }
+    static func processRowID(_ pid: pid_t) -> String { "pid:\(pid)" }
 
+    static let systemRowID = "system"
+
+    /// Apps at the top level; macOS's own daemons and agents fold into one
+    /// "macOS" row, so the list leads with what you can act on. Dock apps stay
+    /// on top even when they live in /System (Finder, Activity Monitor).
     private var rows: [AppRow] {
-        visible.map { u in
-            let info = AppIdentity.info(for: u)
-            return AppRow(usage: u, name: info.name, icon: info.icon)
+        let query = search.trimmingCharacters(in: .whitespaces)
+        let dock = Set(NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }.map(\.processIdentifier))
+        var top: [AppRow] = []
+        var system: [AppRow] = []
+        for u in model.allApps {
+            guard let row = row(for: u, query: query) else { continue }
+            if ProcessGuard.isSystem(path: u.key), !dock.contains(u.responsiblePID), !u.unresponsive {
+                system.append(row)
+            } else {
+                top.append(row)
+            }
         }
-        .sorted(using: sortOrder)
+        if !system.isEmpty, let any = system.first?.usage {
+            top.append(AppRow(id: Self.systemRowID, name: L("macOS 系统服务", "macOS Services"),
+                              icon: NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil),
+                              watts: system.reduce(0) { $0 + $1.watts }, cpu: system.reduce(0) { $0 + $1.cpu },
+                              memory: system.reduce(0) { $0 + $1.memory },
+                              busiest: system.max { $0.cpu + $0.watts < $1.cpu + $1.watts }?.name ?? "",
+                              usage: any, children: system.sorted(using: sortOrder)))
+        }
+        return top.sorted(using: sortOrder)
+    }
+
+    private func row(for u: AppUsage, query: String) -> AppRow? {
+        let info = AppIdentity.info(for: u)
+        let groupMatches = query.isEmpty || info.name.localizedCaseInsensitiveContains(query)
+        // A group of one process that is the app itself has nothing to open.
+        let showsChildren = u.processes.count > 1 || u.processes.first?.pid != u.responsiblePID
+        var kids = showsChildren ? u.processes : []
+        if !groupMatches { kids = kids.filter { $0.name.localizedCaseInsensitiveContains(query) } }
+        guard groupMatches || !kids.isEmpty else { return nil }
+        let children = kids.map { p in
+            AppRow(id: Self.processRowID(p.pid), name: p.name, icon: nil, watts: p.watts, cpu: p.cpuPercent,
+                   memory: p.memoryBytes, busiest: "", usage: u, process: p)
+        }
+        return AppRow(id: u.id, name: info.name, icon: info.icon, watts: u.watts, cpu: u.cpuPercent,
+                      memory: u.memoryBytes, busiest: u.topName, usage: u,
+                      children: children.isEmpty ? nil : children.sorted(using: sortOrder))
     }
 
     var body: some View {
@@ -97,15 +137,8 @@ struct AppsPage: View {
                 table
             }
         }
+        .searchable(text: $search, placement: .toolbar, prompt: L("搜索应用或进程", "Search apps or processes"))
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Picker(L("显示", "Show"), selection: $state.allProcesses) {
-                    Text(L("应用", "Apps")).tag(false)
-                    Text(L("所有进程", "All Processes")).tag(true)
-                }
-                .pickerStyle(.menu)
-                .help(L("只看 Dock 里的应用，或所有进程", "Dock apps only, or every process"))
-            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     if let app = selectedUsage { AppActions.confirmQuit(app) }
@@ -124,20 +157,24 @@ struct AppsPage: View {
     }
 
     private var table: some View {
-        Table(rows, selection: $state.selectedApp, sortOrder: $sortOrder) {
-            TableColumn(L("应用", "App"), value: \.name) { row in
+        Table(rows, children: \.children, selection: $state.selectedApp, sortOrder: $sortOrder) {
+            TableColumn(L("名称", "Name"), value: \.name) { row in
                 HStack(spacing: 6) {
-                    Image(nsImage: row.icon).resizable().frame(width: 16, height: 16)
+                    if let icon = row.icon {
+                        Image(nsImage: icon).resizable().frame(width: 16, height: 16)
+                    }
                     Text(row.name)
-                    if row.usage.unresponsive {
+                    if let p = row.process {
+                        Text("\(p.pid)").monospacedDigit().foregroundStyle(.tertiary)
+                    } else if row.usage.unresponsive {
                         Text(L("（未响应）", "(Not Responding)")).foregroundStyle(.red)
                     }
                 }
             }
-            .width(min: 180, ideal: 240)
+            .width(min: 180, ideal: 260)
             TableColumn(L("能耗", "Energy"), value: \.watts) { row in
                 Text(PowerFormat.watts(row.watts)).monospacedDigit()
-                    .fontWeight(row.watts >= AppEnergyTracker.enterWatts ? .semibold : .regular)
+                    .fontWeight(row.process == nil && row.watts >= AppEnergyTracker.enterWatts ? .semibold : .regular)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .width(min: 60, ideal: 80)
@@ -151,18 +188,39 @@ struct AppsPage: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .width(min: 60, ideal: 80)
-            TableColumn(L("最忙的进程", "Busiest Process"), value: \.usage.topName) { row in
-                Text(row.usage.topName.isEmpty ? "–" : row.usage.topName)
-                    .foregroundStyle(.secondary)
+            TableColumn(L("最忙的进程", "Busiest Process"), value: \.busiest) { row in
+                Text(row.busiest).foregroundStyle(.secondary)
             }
             .width(min: 100, ideal: 160)
         }
         .alternatingRowBackgrounds()
-        .contextMenu(forSelectionType: AppUsage.ID.self) { ids in
-            if let id = ids.first, let app = model.allApps.first(where: { $0.id == id }) {
-                AppContextMenu(app: app)
-            }
+        .contextMenu(forSelectionType: String.self) { ids in
+            if let id = ids.first { menu(for: id) }
         }
+    }
+
+    @ViewBuilder
+    private func menu(for id: String) -> some View {
+        if let app = model.allApps.first(where: { $0.id == id }) {
+            AppContextMenu(app: app)
+        } else if let (app, p) = process(id) {
+            if ProcessGuard.canTerminate(path: ProcessEnergyReader.path(p.pid), pid: p.pid) {
+                Button(L("结束「\(p.name)」…", "End “\(p.name)”…")) { AppActions.endProcess(pid: p.pid, name: p.name) }
+            }
+            if p.pid != app.responsiblePID, AppActions.canQuit(app) {
+                let name = AppIdentity.info(for: app).name
+                Button(L("退出 \(name)…", "Quit \(name)…")) { AppActions.confirmQuit(app) }
+            }
+            Divider()
+            Button(L("打开活动监视器", "Open Activity Monitor")) { AppActions.openActivityMonitor() }
+        }
+    }
+
+    private func process(_ id: String) -> (AppUsage, ProcessUsage)? {
+        for app in model.allApps {
+            if let p = app.processes.first(where: { Self.processRowID($0.pid) == id }) { return (app, p) }
+        }
+        return nil
     }
 }
 

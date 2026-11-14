@@ -38,15 +38,8 @@ final class DashboardState: ObservableObject {
     }
     @Published var selectedApp: AppUsage.ID?
     @Published var range: ChartRange = .hour6
-    /// Apps page: Dock apps only, or every process (Activity Monitor's
-    /// "Windowed Processes" and "All Processes").
-    @Published var allProcesses: Bool {
-        didSet { UserDefaults.standard.set(allProcesses, forKey: "appsShowAllProcesses") }
-    }
-
     private init() {
         page = DashboardPage(rawValue: UserDefaults.standard.string(forKey: "dashboardPage") ?? "") ?? .overview
-        allProcesses = UserDefaults.standard.bool(forKey: "appsShowAllProcesses")
     }
 }
 

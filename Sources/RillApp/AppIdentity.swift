@@ -21,7 +21,7 @@ enum AppIdentity {
             let name = FileManager.default.displayName(atPath: usage.key).replacingOccurrences(of: ".app", with: "")
             info = Info(name: name, icon: NSWorkspace.shared.icon(forFile: usage.key))
         } else {
-            info = Info(name: (usage.key as NSString).lastPathComponent, icon: NSWorkspace.shared.icon(forFile: usage.key))
+            info = Info(name: ProcessEnergyReader.displayName(forExecutable: usage.key), icon: NSWorkspace.shared.icon(forFile: usage.key))
         }
         cache[usage.key] = info
         return info

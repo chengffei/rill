@@ -17,4 +17,9 @@ public enum ProcessGuard {
         guard pid > 1, pid != selfPID, let path, path.hasPrefix("/") else { return false }
         return !protectedPrefixes.contains { path.hasPrefix($0) }
     }
+
+    /// Part of macOS itself: under /System, /usr/libexec and the like.
+    public static func isSystem(path: String) -> Bool {
+        protectedPrefixes.contains { path.hasPrefix($0) }
+    }
 }

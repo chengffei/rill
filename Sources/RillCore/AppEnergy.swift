@@ -25,12 +25,32 @@ public struct AppUsage: Equatable, Sendable, Identifiable {
     public var topName: String = ""
     /// Set by the app layer when the window server reports the app as hung.
     public var unresponsive: Bool = false
+    /// The group's processes, busiest first.
+    public var processes: [ProcessUsage] = []
     public var id: String { key }
 
     public init(key: String, responsiblePID: pid_t, watts: Double) {
         self.key = key
         self.responsiblePID = responsiblePID
         self.watts = watts
+    }
+}
+
+/// One process inside an app's group, smoothed like the group.
+public struct ProcessUsage: Equatable, Sendable, Identifiable {
+    public var pid: pid_t
+    public var name: String
+    public var watts: Double
+    public var cpuPercent: Double
+    public var memoryBytes: UInt64
+    public var id: pid_t { pid }
+
+    public init(pid: pid_t, name: String, watts: Double, cpuPercent: Double, memoryBytes: UInt64) {
+        self.pid = pid
+        self.name = name
+        self.watts = watts
+        self.cpuPercent = cpuPercent
+        self.memoryBytes = memoryBytes
     }
 }
 
@@ -75,6 +95,9 @@ public struct AppEnergyTracker: Sendable {
     private var memory: [String: UInt64] = [:]
     private var top: [String: (pid: pid_t, name: String)] = [:]
     private var responsible: [String: pid_t] = [:]
+    /// Per process: smoothed watts and CPU, and the latest reading.
+    private var pidAverages: [pid_t: (watts: Double, cpu: Double)] = [:]
+    private var pidLatest: [pid_t: ProcessEnergy] = [:]
     private var heavy: Set<String> = []
 
     public init(timeConstant: TimeInterval = 20) {
@@ -91,6 +114,7 @@ public struct AppEnergyTracker: Sendable {
         var instantCPU: [String: Double] = [:]
         var topRate: [String: Double] = [:]
         var mem: [String: UInt64] = [:]
+        var pidInstant: [pid_t: (watts: Double, cpu: Double)] = [:]
         let dt = lastDate.map { date.timeIntervalSince($0) } ?? 0
         for r in readings {
             current[r.pid] = (r.energyNJ, r.cpuNS)
@@ -103,6 +127,7 @@ public struct AppEnergyTracker: Sendable {
             instant[r.appKey, default: 0] += w
             let cpu = r.cpuNS >= before.cpu ? Double(r.cpuNS - before.cpu) / 1e9 / dt * 100 : 0
             instantCPU[r.appKey, default: 0] += cpu
+            pidInstant[r.pid] = (w, cpu)
             // Rank by CPU first; energy only breaks ties for processes the
             // CPU counter misses.
             let rate = cpu + w
@@ -113,9 +138,16 @@ public struct AppEnergyTracker: Sendable {
         }
         last = current
         memory = mem
+        pidLatest = Dictionary(readings.map { ($0.pid, $0) }, uniquingKeysWith: { _, b in b })
         guard dt > 0 else { return [] }
 
         let keep = 1 - exp(-dt / timeConstant)
+        var nextPID: [pid_t: (watts: Double, cpu: Double)] = [:]
+        for (pid, now) in pidInstant {
+            let a = pidAverages[pid] ?? (0, 0)
+            nextPID[pid] = (a.watts + (now.watts - a.watts) * keep, a.cpu + (now.cpu - a.cpu) * keep)
+        }
+        pidAverages = nextPID
         var next: [String: Double] = [:]
         var nextCPU: [String: Double] = [:]
         for key in Set(averages.keys).union(instant.keys) {
@@ -138,11 +170,20 @@ public struct AppEnergyTracker: Sendable {
     }
 
     public func usages() -> [AppUsage] {
-        averages.map { key, watts in
+        var groups: [String: [ProcessUsage]] = [:]
+        for (pid, r) in pidLatest {
+            let a = pidAverages[pid] ?? (0, 0)
+            groups[r.appKey, default: []].append(ProcessUsage(pid: pid, name: r.name, watts: a.watts,
+                                                              cpuPercent: a.cpu, memoryBytes: r.footprint))
+        }
+        return averages.map { key, watts in
             var u = AppUsage(key: key, responsiblePID: responsible[key] ?? 0, watts: watts)
             u.cpuPercent = cpuAverages[key] ?? 0
             u.memoryBytes = memory[key] ?? 0
             if let t = top[key] { u.topPID = t.pid; u.topName = t.name }
+            u.processes = (groups[key] ?? []).sorted {
+                ($0.cpuPercent + $0.watts, $1.pid) > ($1.cpuPercent + $1.watts, $0.pid)
+            }
             return u
         }
         .sorted { $0.watts > $1.watts }
@@ -199,7 +240,7 @@ public final class ProcessEnergyReader {
                 let own = Self.path(pid)
                 key = Self.appKey(forExecutable: Self.path(owner) ?? own ?? "pid \(pid)")
                 resp = owner
-                name = own.map { ($0 as NSString).lastPathComponent } ?? "pid \(pid)"
+                name = own.map(Self.displayName(forExecutable:)) ?? "pid \(pid)"
                 cache[pid] = (key, resp, name)
             }
             let ticks = info.ri_user_time &+ info.ri_system_time
@@ -213,6 +254,21 @@ public final class ProcessEnergyReader {
     public static func path(_ pid: pid_t) -> String? {
         var buf = [CChar](repeating: 0, count: 4096)
         return proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 ? String(cString: buf) : nil
+    }
+
+    /// A readable name for an executable. Some tools install each release as a
+    /// file named after its version (Claude Code: `…/claude/versions/2.1.325`),
+    /// so a version-like name falls back to the nearest folder that isn't one.
+    public static func displayName(forExecutable path: String) -> String {
+        let parts = path.split(separator: "/").map(String.init)
+        guard let last = parts.last else { return path }
+        guard isVersionLike(last) else { return last }
+        let skip: Set<String> = ["versions", "bin", "current", "libexec"]
+        return parts.dropLast().reversed().first { !isVersionLike($0) && !skip.contains($0.lowercased()) } ?? last
+    }
+
+    static func isVersionLike(_ s: String) -> Bool {
+        s.range(of: #"^v?\d+(\.\d+)+$"#, options: .regularExpression) != nil
     }
 
     /// The outermost `.app` bundle containing the executable, else the executable.

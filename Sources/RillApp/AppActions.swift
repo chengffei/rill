@@ -174,7 +174,8 @@ final class MenuTarget: NSObject {
 
 enum Format {
     static func cpu(_ percent: Double) -> String {
-        percent >= 10 ? String(format: "%.0f%%", percent) : String(format: "%.1f%%", percent)
+        // Decide on the rounded value: 9.96 prints "10%", not "10.0%".
+        percent >= 9.95 ? String(format: "%.0f%%", percent) : String(format: "%.1f%%", percent)
     }
 
     static func bytes(_ b: UInt64) -> String {
