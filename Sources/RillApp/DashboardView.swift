@@ -194,6 +194,8 @@ private struct HistoryPage: View {
     var body: some View {
         let records = records
         Form {
+            EnergySection(minutes: model.minutes.filter { $0.t >= Date().addingTimeInterval(-state.range.seconds) },
+                          range: state.range)
             Section(L("功率", "Power")) {
                 PowerChart(records: records)
                     .frame(height: 240)
@@ -281,6 +283,15 @@ enum ChartRange: String, CaseIterable, Identifiable {
         case .day7: return L("7 天", "7 Days")
         }
     }
+    /// One bar of the energy chart: about a dozen bars per range.
+    var slot: TimeInterval {
+        switch self {
+        case .hour1: return 300
+        case .hour6: return 1800
+        case .hour24: return 3600
+        case .day7: return 86400
+        }
+    }
     var seconds: TimeInterval {
         switch self {
         case .hour1: return 3600
@@ -292,6 +303,89 @@ enum ChartRange: String, CaseIterable, Identifiable {
 }
 
 // MARK: - Charts
+
+/// Energy used over the chosen range: a bar per slot (5 min to a day) and
+/// the range's totals, from the raw minute records rather than the
+/// downsampled ones the line charts draw.
+private struct EnergySection: View {
+    let minutes: [MinuteRecord]
+    let range: ChartRange
+    @State private var selected: Date?
+
+    var body: some View {
+        let slots = EnergyStats.slots(minutes, size: range.slot)
+        let total = EnergyStats(records: minutes)
+        Section {
+            if slots.isEmpty {
+                Text(L("还没有记录", "No history yet")).foregroundStyle(.secondary)
+            } else {
+                chart(slots).frame(height: 160).padding(.vertical, 6)
+                LabeledContent(L("充电器供电", "From Charger"), value: EnergyStats.format(wh: total.inputWh))
+                LabeledContent(L("充入电池", "Into Battery"), value: EnergyStats.format(wh: total.chargedWh))
+                LabeledContent(L("电池放出", "From Battery"), value: EnergyStats.format(wh: total.dischargedWh))
+                if let avg = total.averageSystem { LabeledContent(L("平均负载", "Average Load"), value: PowerFormat.watts(avg)) }
+            }
+        } header: {
+            HStack(alignment: .firstTextBaseline) {
+                Text(L("电脑用电量", "Energy Used by Mac"))
+                Spacer()
+                if !slots.isEmpty {
+                    Text(EnergyStats.format(wh: total.systemWh)).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .monospacedDigit()
+    }
+
+    private func chart(_ slots: [(start: Date, stats: EnergyStats)]) -> some View {
+        let size = range.slot
+        let hit = selected.flatMap { s in slots.first { s >= $0.start && s < $0.start.addingTimeInterval(size) } }
+        return Chart {
+            ForEach(slots, id: \.start) { slot in
+                bar(slot, size: size, dimmed: hit != nil && hit?.start != slot.start)
+            }
+            if let hit {
+                RuleMark(x: .value("选中", hit.start.addingTimeInterval(size / 2)))
+                    .foregroundStyle(.clear)
+                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(slotLabel(hit.start)).foregroundStyle(.secondary)
+                            Text(EnergyStats.format(wh: hit.stats.systemWh))
+                        }
+                        .font(.caption.monospacedDigit())
+                        .padding(8)
+                        .background(.regularMaterial, in: .rect(cornerRadius: 8))
+                    }
+            }
+        }
+        .chartXScale(domain: (slots.first?.start ?? Date())...(slots.last.map { $0.start.addingTimeInterval(size) } ?? Date()))
+        .chartXSelection(value: $selected)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { v in
+                AxisGridLine()
+                AxisValueLabel { if let wh = v.as(Double.self) { Text(String(format: wh < 10 ? "%.1f Wh" : "%.0f Wh", wh)) } }
+            }
+        }
+    }
+
+    /// Each bar spans its slot, inset by a tenth on both sides for the gap.
+    private func bar(_ slot: (start: Date, stats: EnergyStats), size: TimeInterval, dimmed: Bool) -> some ChartContent {
+        let from: Date = slot.start.addingTimeInterval(size * 0.1)
+        let to: Date = slot.start.addingTimeInterval(size * 0.9)
+        let wh: Double = slot.stats.systemWh
+        let color: Color = Palette.system.opacity(dimmed ? 0.35 : 1)
+        return RectangleMark(xStart: .value("开始", from), xEnd: .value("结束", to),
+                             yStart: .value("Wh", 0.0), yEnd: .value("Wh", wh))
+            .foregroundStyle(color)
+            .cornerRadius(2)
+    }
+
+    private func slotLabel(_ start: Date) -> String {
+        let end = start.addingTimeInterval(range.slot)
+        if range == .day7 { return start.formatted(.dateTime.month().day().weekday()) }
+        return start.formatted(.dateTime.month().day().hour().minute()) + "–" + end.formatted(.dateTime.hour().minute())
+    }
+}
 
 private struct PowerChart: View {
     let records: [MinuteRecord]

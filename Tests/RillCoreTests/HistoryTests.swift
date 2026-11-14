@@ -74,4 +74,28 @@ final class HistoryTests: XCTestCase {
         let h = try FileHandle(forWritingTo: file); try h.seekToEnd(); try h.write(contentsOf: Data("{\"t\":".utf8)); try h.close()
         XCTAssertEqual(store.load(since: now.addingTimeInterval(-7200), now: now).count, 2)
     }
+
+    /// Minutes fold into clock-aligned slots and calendar days.
+    func testEnergySlots() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        let midnight = cal.date(from: DateComponents(year: 2026, month: 11, day: 14))!
+        // 10:00–10:59 at 12 W, then 23:59 and the next day's 00:00 at 6 W.
+        var rs = (0..<60).map { MinuteRecord(t: midnight.addingTimeInterval(36000 + Double($0) * 60), input: 0, system: 12,
+                                             battery: -12, temp: nil, percent: 50, seconds: 60) }
+        rs.append(MinuteRecord(t: midnight.addingTimeInterval(86340), input: 0, system: 6, battery: -6, temp: nil, percent: 40, seconds: 60))
+        rs.append(MinuteRecord(t: midnight.addingTimeInterval(86400), input: 0, system: 6, battery: -6, temp: nil, percent: 40, seconds: 60))
+
+        let half = EnergyStats.slots(rs, size: 1800, calendar: cal)
+        XCTAssertEqual(half.count, 4)
+        XCTAssertEqual(half[0].start, midnight.addingTimeInterval(36000))
+        XCTAssertEqual(half[0].stats.systemWh, 6, accuracy: 1e-9)   // 30 min × 12 W
+        XCTAssertEqual(half[2].start, midnight.addingTimeInterval(84600))
+
+        let days = EnergyStats.slots(rs, size: 86400, calendar: cal)
+        XCTAssertEqual(days.map(\.start), [midnight, midnight.addingTimeInterval(86400)])
+        XCTAssertEqual(days[0].stats.systemWh, 12.1, accuracy: 1e-9)
+        XCTAssertEqual(EnergyStats.format(wh: 8.44), "8.4 Wh")
+        XCTAssertEqual(EnergyStats.format(wh: 1350), "1.35 kWh")
+    }
 }

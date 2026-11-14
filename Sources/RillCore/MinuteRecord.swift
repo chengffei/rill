@@ -102,6 +102,29 @@ public struct EnergyStats: Equatable, Sendable {
     }
 }
 
+public extension EnergyStats {
+    /// Energy per time slot for a bar chart: slots of `size` seconds aligned to
+    /// local midnight (5 min, 30 min, 1 h), or calendar days when `size` is a
+    /// day or more. Only slots with records are returned, oldest first.
+    static func slots(_ records: [MinuteRecord], size: TimeInterval,
+                      calendar: Calendar = .current) -> [(start: Date, stats: EnergyStats)] {
+        var groups: [Date: [MinuteRecord]] = [:]
+        for r in records {
+            let day = calendar.startOfDay(for: r.t)
+            let key = size >= 86400 ? day
+                : day.addingTimeInterval((r.t.timeIntervalSince(day) / size).rounded(.down) * size)
+            groups[key, default: []].append(r)
+        }
+        return groups.keys.sorted().map { ($0, EnergyStats(records: groups[$0]!)) }
+    }
+
+    /// "8.4 Wh", "126 Wh", "1.35 kWh".
+    static func format(wh: Double) -> String {
+        if wh >= 1000 { return String(format: "%.2f kWh", wh / 1000) }
+        return wh >= 100 ? String(format: "%.0f Wh", wh) : String(format: "%.1f Wh", wh)
+    }
+}
+
 public enum Downsample {
     /// Averages records into buckets so a chart never draws more than about
     /// `maxPoints` points per series.
