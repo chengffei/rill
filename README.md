@@ -2,7 +2,7 @@
 
 A macOS menu bar app that shows where your Mac's power goes, live: what the charger delivers, what the Mac draws, what flows into or out of the battery, and which apps use the most energy.
 
-> **Status: early (0.7).** Requires macOS 26 or later on Apple silicon. Interface in English and 简体中文.
+> **Status: early (0.8).** Requires macOS 26 or later on Apple silicon. Interface in English and 简体中文.
 
 ## Install
 
