@@ -47,7 +47,7 @@ final class DashboardState: ObservableObject {
 /// grouped forms and a table. Liquid Glass stays in the navigation layer
 /// (sidebar, toolbar), where the system draws it; content has none.
 struct DashboardView: View {
-    @ObservedObject var model: PowerModel
+    let model: PowerModel
     @ObservedObject var state = DashboardState.shared
     @ObservedObject private var settings = AppSettings.shared
 
@@ -85,7 +85,7 @@ struct DashboardView: View {
 // MARK: - Overview
 
 private struct OverviewPage: View {
-    @ObservedObject var model: PowerModel
+    let model: PowerModel
     let snapshot: PowerSnapshot
 
     var body: some View {
@@ -136,7 +136,7 @@ private struct OverviewPage: View {
                 Text(L("CPU 能耗按应用汇总，近 20 秒平均 1 W 及以上计入。", "CPU energy by app; 1 W or more over 20 seconds counts."))
             }
 
-            TodaySection(minutes: model.minutes)
+            TodaySection(minutes: model.minutes, partial: model.partialMinute)
         }
         .formStyle(.grouped)
     }
@@ -164,10 +164,12 @@ private struct AppSummaryRow: View {
 
 private struct TodaySection: View {
     let minutes: [MinuteRecord]
+    /// The minute in progress, so the totals move every sample.
+    let partial: MinuteRecord?
 
     var body: some View {
         let start = Calendar.current.startOfDay(for: Date())
-        let e = EnergyStats(records: minutes.filter { $0.t >= start })
+        let e = EnergyStats(records: minutes.filter { $0.t >= start } + (partial.map { [$0] } ?? []))
         Section(L("今日", "Today")) {
             LabeledContent(L("电脑用电量", "Used by Mac"), value: EnergyStats.format(wh: e.systemWh))
             EnergyRows(stats: e)
@@ -198,8 +200,11 @@ private struct EnergyRows: View {
 
 // MARK: - History
 
+/// Draws from completed minutes only, so it re-renders once a minute rather
+/// than every sample (three charts over up to 10,000 records); the totals
+/// trail live by under a minute.
 private struct HistoryPage: View {
-    @ObservedObject var model: PowerModel
+    let model: PowerModel
     @ObservedObject var state = DashboardState.shared
 
     private var records: [MinuteRecord] {

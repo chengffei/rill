@@ -42,26 +42,33 @@ io_connect_t smc_open(void) {
 
 void smc_close(io_connect_t conn) { if (conn) IOServiceClose(conn); }
 
-int smc_read(io_connect_t conn, const char key[4], char type[5], uint8_t bytes[32], uint32_t *size) {
+int smc_key_info(io_connect_t conn, const char key[4], char type[5], uint32_t *size) {
     SMCParam in, out;
     memset(&in, 0, sizeof in); memset(&out, 0, sizeof out);
     in.key = fourcc(key);
     in.data8 = kReadKeyInfo;
     if (call(conn, &in, &out) != 0) return -1;
-    uint32_t dataSize = out.keyInfo.dataSize;
-    uint32_t dataType = out.keyInfo.dataType;
-    if (dataSize == 0 || dataSize > 32) return -1;
-
-    memset(&in, 0, sizeof in);
-    in.key = fourcc(key);
-    in.keyInfo.dataSize = dataSize;
-    in.data8 = kReadBytes;
-    memset(&out, 0, sizeof out);
-    if (call(conn, &in, &out) != 0) return -1;
-    unfourcc(dataType, type);
-    memcpy(bytes, out.bytes, dataSize);
-    *size = dataSize;
+    if (out.keyInfo.dataSize == 0 || out.keyInfo.dataSize > 32) return -1;
+    unfourcc(out.keyInfo.dataType, type);
+    *size = out.keyInfo.dataSize;
     return 0;
+}
+
+int smc_read_bytes(io_connect_t conn, const char key[4], uint32_t size, uint8_t bytes[32]) {
+    if (size == 0 || size > 32) return -1;
+    SMCParam in, out;
+    memset(&in, 0, sizeof in); memset(&out, 0, sizeof out);
+    in.key = fourcc(key);
+    in.keyInfo.dataSize = size;
+    in.data8 = kReadBytes;
+    if (call(conn, &in, &out) != 0) return -1;
+    memcpy(bytes, out.bytes, size);
+    return 0;
+}
+
+int smc_read(io_connect_t conn, const char key[4], char type[5], uint8_t bytes[32], uint32_t *size) {
+    if (smc_key_info(conn, key, type, size) != 0) return -1;
+    return smc_read_bytes(conn, key, *size, bytes);
 }
 
 uint32_t smc_key_count(io_connect_t conn) {

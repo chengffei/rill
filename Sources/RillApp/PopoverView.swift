@@ -15,7 +15,7 @@ enum Palette {
 }
 
 struct PopoverView: View {
-    @ObservedObject var model: PowerModel
+    let model: PowerModel
     var onOpenDashboard: () -> Void
     @ObservedObject private var settings = AppSettings.shared
     @Environment(\.colorScheme) private var scheme

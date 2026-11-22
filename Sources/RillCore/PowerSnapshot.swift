@@ -165,11 +165,16 @@ extension PowerSnapshot {
 }
 
 public enum BatteryReader {
+    /// The AppleSmartBattery service, looked up once; it never goes away on a
+    /// Mac with a battery.
+    nonisolated(unsafe) private static var service: io_service_t = 0
+
     /// Current AppleSmartBattery properties, or nil on a Mac without a battery.
     public static func read(date: Date = Date()) -> PowerSnapshot? {
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        if service == 0 {
+            service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        }
         guard service != 0 else { return nil }
-        defer { IOObjectRelease(service) }
         var props: Unmanaged<CFMutableDictionary>?
         guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let dict = props?.takeRetainedValue() as? [String: Any] else { return nil }

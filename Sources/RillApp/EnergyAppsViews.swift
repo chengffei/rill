@@ -60,7 +60,7 @@ struct HeavyAppsRow: View {
 /// app it counts toward. Select an app and use the toolbar button, the
 /// context menu or Process ▸ Quit (⌥⌘Q) to quit it; a process row offers End.
 struct AppsPage: View {
-    @ObservedObject var model: PowerModel
+    let model: PowerModel
     @ObservedObject var state = DashboardState.shared
     @State private var sortOrder = [KeyPathComparator(\AppRow.watts, order: .reverse)]
     @State private var search = ""

@@ -44,7 +44,10 @@ final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     @Published var language: AppLanguage {
-        didSet { UserDefaults.standard.set(language.rawValue, forKey: "language") }
+        didSet {
+            UserDefaults.standard.set(language.rawValue, forKey: "language")
+            Self.chinese = Self.isChinese(language)
+        }
     }
     @Published var showsPower: Bool {
         didSet { UserDefaults.standard.set(showsPower, forKey: "showsPower") }
@@ -63,7 +66,7 @@ final class AppSettings: ObservableObject {
     private init() {
         // Default is Chinese, as Rill always was; this Mac's first system
         // language is en-CN, so "System" would have flipped it to English.
-        language = AppLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .zh
+        language = Self.stored
         showsPower = UserDefaults.standard.object(forKey: "showsPower") as? Bool ?? true
         appearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appearance") ?? "") ?? .system
     }
@@ -73,8 +76,18 @@ final class AppSettings: ObservableObject {
         NSApp?.appearance = appearance.nsAppearance
     }
 
-    nonisolated static var isChinese: Bool {
-        switch AppLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .zh {
+    /// `L()` runs for every string in every view body, so the answer is kept
+    /// here rather than read from UserDefaults each time.
+    nonisolated(unsafe) private static var chinese = isChinese(stored)
+
+    nonisolated static var isChinese: Bool { chinese }
+
+    nonisolated private static var stored: AppLanguage {
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .zh
+    }
+
+    nonisolated private static func isChinese(_ language: AppLanguage) -> Bool {
+        switch language {
         case .zh: return true
         case .en: return false
         case .system: return Locale.preferredLanguages.first?.hasPrefix("zh") ?? false

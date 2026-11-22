@@ -19,14 +19,25 @@ public final class SMC {
         public let bytes: [UInt8]
     }
 
+    /// Type and size per key, looked up once: with them a read is one round
+    /// trip to the SMC instead of two.
+    private var info: [String: (type: String, size: UInt32)] = [:]
+
     public func raw(_ key: String) -> Value? {
         guard key.utf8.count == 4 else { return nil }
-        var type = [CChar](repeating: 0, count: 5)
+        let meta: (type: String, size: UInt32)
+        if let cached = info[key] {
+            meta = cached
+        } else {
+            var type = [CChar](repeating: 0, count: 5)
+            var size: UInt32 = 0
+            guard key.withCString({ smc_key_info(conn, $0, &type, &size) }) == 0 else { return nil }
+            meta = (String(cString: type), size)
+            info[key] = meta
+        }
         var bytes = [UInt8](repeating: 0, count: 32)
-        var size: UInt32 = 0
-        let ok = key.withCString { k in smc_read(conn, k, &type, &bytes, &size) } == 0
-        guard ok else { return nil }
-        return Value(type: String(cString: type), bytes: Array(bytes.prefix(Int(size))))
+        guard key.withCString({ smc_read_bytes(conn, $0, meta.size, &bytes) }) == 0 else { return nil }
+        return Value(type: meta.type, bytes: Array(bytes.prefix(Int(meta.size))))
     }
 
     public func double(_ key: String) -> Double? {

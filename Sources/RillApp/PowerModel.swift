@@ -1,50 +1,67 @@
 import Foundation
+import Observation
 import RillCore
 
 /// Samples power every two seconds: live watts and temperature from the SMC,
 /// percent, adapter and capacity from the battery registry every ten seconds.
-/// The panel only gets new values while it is open.
-@MainActor
-final class PowerModel: ObservableObject {
-    @Published private(set) var snapshot: PowerSnapshot?
-    @Published private(set) var history = PowerHistory(window: 10 * 60)
-    /// Minute records for the last 7 days plus the minute in progress.
-    @Published private(set) var minutes: [MinuteRecord] = []
+///
+/// Views see new values only while the panel or the Dashboard is showing.
+/// Their SwiftUI trees live on in the closed popover and window, and a
+/// change published to them re-ran layout every two seconds: 2.4 % of a core
+/// hidden, against 0.65 % with nothing ever opened (2026-11-22). Per-app
+/// energy is read every 4 s while something shows it and every 20 s otherwise.
+@Observable @MainActor
+final class PowerModel {
+    private(set) var snapshot: PowerSnapshot?
+    private(set) var history = PowerHistory(window: 10 * 60)
+    /// Completed minute records for the last 7 days; changes once a minute.
+    private(set) var minutes: [MinuteRecord] = []
+    /// The minute in progress, for live totals.
+    private(set) var partialMinute: MinuteRecord?
     /// Apps using significant energy (hung ones first).
-    @Published private(set) var heavyApps: [AppUsage] = []
+    private(set) var heavyApps: [AppUsage] = []
     /// Every app with measurable activity, for the Apps table.
-    @Published private(set) var allApps: [AppUsage] = []
+    private(set) var allApps: [AppUsage] = []
     /// False until the first two energy readings give a rate.
-    @Published private(set) var energyMeasured = false
+    private(set) var energyMeasured = false
 
-    private let energyReader = ProcessEnergyReader()
-    private var energyTracker = AppEnergyTracker(timeConstant: 20)
-    private let hangDetector = HangDetector()
+    @ObservationIgnored private let energyReader = ProcessEnergyReader()
+    @ObservationIgnored private var energyTracker = AppEnergyTracker(timeConstant: 20)
+    @ObservationIgnored private let hangDetector = HangDetector()
     /// Responsible pid and bundle path of apps the window server reports hung.
-    private var hung: [(pid: pid_t, key: String?)] = []
-    private var tick = 0
+    @ObservationIgnored private var hung: [(pid: pid_t, key: String?)] = []
+    @ObservationIgnored private var lastEnergyRead = Date.distantPast
+    /// The app lists need rebuilding from the tracker before the next publish.
+    @ObservationIgnored private var appsDirty = false
 
-    private let store = HistoryStore(directory: ProcessInfo.processInfo.environment["RILL_HISTORY_DIR"].map { URL(fileURLWithPath: $0) })
-    private var aggregator = MinuteAggregator(interval: 2)
-    private var savedMinutes: [MinuteRecord] = []
+    @ObservationIgnored private let store = HistoryStore(directory: ProcessInfo.processInfo.environment["RILL_HISTORY_DIR"].map { URL(fileURLWithPath: $0) })
+    @ObservationIgnored private var aggregator = MinuteAggregator(interval: 2)
+    @ObservationIgnored private var savedMinutes: [MinuteRecord] = []
+    @ObservationIgnored private var minutesDirty = false
 
-    private var latest: PowerSnapshot?
-    private var latestHistory = PowerHistory(window: 10 * 60)
-    private var registry: PowerSnapshot?
-    private var registryDate = Date.distantPast
-    private let sensors = LiveSensors()
-    private var timer: Timer?
-    private var smoothed: LiveReading?
+    @ObservationIgnored private var latest: PowerSnapshot?
+    @ObservationIgnored private var latestHistory = PowerHistory(window: 10 * 60)
+    @ObservationIgnored private var registry: PowerSnapshot?
+    @ObservationIgnored private var registryDate = Date.distantPast
+    @ObservationIgnored private let sensors = LiveSensors()
+    @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var smoothed: LiveReading?
 
-    /// Set by the app delegate while the popover or the Dashboard is shown.
-    var popoverVisible = false { didSet { if isVisible { publish() } } }
-    var dashboardVisible = false { didSet { if isVisible { publish() } } }
+    /// Set by the app delegate while the popover or the Dashboard is on screen.
+    @ObservationIgnored var popoverVisible = false { didSet { visibilityChanged() } }
+    @ObservationIgnored var dashboardVisible = false { didSet { visibilityChanged() } }
     var isVisible: Bool { popoverVisible || dashboardVisible }
-    var onUpdate: ((PowerSnapshot?) -> Void)?
+    /// Called after every sample with the latest reading, shown or not.
+    @ObservationIgnored var onUpdate: ((PowerSnapshot?) -> Void)?
+
+    /// Seconds between per-app energy readings while something shows them, and while nothing does.
+    static let energyIntervalShown: TimeInterval = 4
+    static let energyIntervalHidden: TimeInterval = 20
 
     func start(interval: TimeInterval = 2) {
         store.prune()
         savedMinutes = store.load(since: Date().addingTimeInterval(-7 * 86400))
+        minutes = savedMinutes
         sample()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.sample() }
@@ -66,17 +83,12 @@ final class PowerModel: ObservableObject {
             s?.date = now
         }
         latest = s
-        // Per-app energy every other sample (4 s); reading ~800 processes
-        // costs about a millisecond.
-        tick += 1
-        if tick % 2 == 1 {
-            energyTracker.ingest(energyReader.read(), at: now)
-            hung = hangDetector.check().map { ($0.processIdentifier, $0.bundleURL?.path) }
+        // The timer fires with up to 0.5 s of slack, so the interval is
+        // checked with a little margin.
+        let energyInterval = isVisible ? Self.energyIntervalShown : Self.energyIntervalHidden
+        if now.timeIntervalSince(lastEnergyRead) >= energyInterval - 1 {
+            readEnergy(at: now)
         }
-        // The panel's size depends on the snapshot (adapter rows come and go),
-        // so keep it current even while closed; the popover is sized from it
-        // before it opens. Only the heavier history waits for visibility.
-        if snapshot != s { snapshot = s }
         if let s {
             latestHistory.append(s)
             if let done = aggregator.add(s) {
@@ -86,10 +98,19 @@ final class PowerModel: ObservableObject {
                 if let first = savedMinutes.first, first.t < cutoff {
                     savedMinutes.removeAll { $0.t < cutoff }
                 }
+                minutesDirty = true
             }
         }
         if isVisible { publish() }
         onUpdate?(s)
+    }
+
+    /// Reading ~550 processes costs about a millisecond.
+    private func readEnergy(at now: Date) {
+        lastEnergyRead = now
+        energyTracker.ingest(energyReader.read(), at: now)
+        hung = hangDetector.check().map { ($0.processIdentifier, $0.bundleURL?.path) }
+        appsDirty = true
     }
 
     /// Averages the last two samples (about 4 s) to steady the readings.
@@ -107,22 +128,44 @@ final class PowerModel: ObservableObject {
         return m
     }
 
+    /// On opening, the views get everything current at once; the energy
+    /// reading is refreshed too when the slower hidden cadence left it stale.
+    private func visibilityChanged() {
+        guard isVisible else { return }
+        let now = Date()
+        if now.timeIntervalSince(lastEnergyRead) >= Self.energyIntervalShown - 1 {
+            readEnergy(at: now)
+        }
+        appsDirty = true
+        publish()
+    }
+
     private func publish() {
         snapshot = latest
         history = latestHistory
+        partialMinute = aggregator.partial()
+        if minutesDirty {
+            minutes = savedMinutes
+            minutesDirty = false
+        }
+        if appsDirty {
+            refreshApps()
+            appsDirty = false
+        }
+    }
+
+    /// Rebuilds the app lists from the tracker, once per energy reading.
+    private func refreshApps() {
         let all = energyTracker.usages().map(markHung)
         let stuck = hungUsages(from: all)
         let stuckKeys = Set(stuck.map(\.key))
         // Hung apps first: they need attention even at 0 W.
-        let heavy = stuck + energyTracker.heavyApps().map(markHung).filter { !stuckKeys.contains($0.key) }
+        let heavy = stuck + all.filter { energyTracker.isHeavy($0.key) && !stuckKeys.contains($0.key) }
         if heavy != heavyApps { heavyApps = heavy }
-        if dashboardVisible, !energyMeasured, !energyTracker.usages().isEmpty { energyMeasured = true }
+        if !energyMeasured, !all.isEmpty { energyMeasured = true }
         if dashboardVisible {
             let everything = stuck + all.filter { !stuckKeys.contains($0.key) }
             if everything != allApps { allApps = everything }
-        }
-        if dashboardVisible {
-            minutes = savedMinutes + (aggregator.partial().map { [$0] } ?? [])
         }
     }
 

@@ -95,19 +95,19 @@ public struct AppEnergyTracker: Sendable {
     private var memory: [String: UInt64] = [:]
     private var top: [String: (pid: pid_t, name: String)] = [:]
     private var responsible: [String: pid_t] = [:]
-    /// Per process: smoothed watts and CPU, and the latest reading.
+    /// Per process: smoothed watts and CPU; and the latest reading of every process.
     private var pidAverages: [pid_t: (watts: Double, cpu: Double)] = [:]
-    private var pidLatest: [pid_t: ProcessEnergy] = [:]
+    private var latest: [ProcessEnergy] = []
     private var heavy: Set<String> = []
 
     public init(timeConstant: TimeInterval = 20) {
         self.timeConstant = timeConstant
     }
 
-    /// Feeds one reading of all processes; returns every app's smoothed watts,
-    /// highest first.
-    @discardableResult
-    public mutating func ingest(_ readings: [ProcessEnergy], at date: Date) -> [AppUsage] {
+    /// Feeds one reading of all processes. Ask `usages()` or `heavyApps()`
+    /// for the result when something will show it; building the lists costs
+    /// more than the ingest itself.
+    public mutating func ingest(_ readings: [ProcessEnergy], at date: Date) {
         defer { lastDate = date }
         var current: [pid_t: (energy: UInt64, cpu: UInt64)] = [:]
         var instant: [String: Double] = [:]
@@ -138,8 +138,8 @@ public struct AppEnergyTracker: Sendable {
         }
         last = current
         memory = mem
-        pidLatest = Dictionary(readings.map { ($0.pid, $0) }, uniquingKeysWith: { _, b in b })
-        guard dt > 0 else { return [] }
+        latest = readings
+        guard dt > 0 else { return }
 
         let keep = 1 - exp(-dt / timeConstant)
         var nextPID: [pid_t: (watts: Double, cpu: Double)] = [:]
@@ -162,18 +162,20 @@ public struct AppEnergyTracker: Sendable {
         averages = next
         cpuAverages = nextCPU
         top = top.filter { next[$0.key] != nil }
+        // Apps that have gone leave every table, or the key set grows for
+        // as long as Rill runs (one entry per executable ever seen).
+        responsible = responsible.filter { next[$0.key] != nil }
         for (key, w) in averages {
             if w >= Self.enterWatts { heavy.insert(key) } else if w < Self.exitWatts { heavy.remove(key) }
         }
         heavy.formIntersection(averages.keys)
-        return usages()
     }
 
     public func usages() -> [AppUsage] {
         var groups: [String: [ProcessUsage]] = [:]
-        for (pid, r) in pidLatest {
-            let a = pidAverages[pid] ?? (0, 0)
-            groups[r.appKey, default: []].append(ProcessUsage(pid: pid, name: r.name, watts: a.watts,
+        for r in latest {
+            let a = pidAverages[r.pid] ?? (0, 0)
+            groups[r.appKey, default: []].append(ProcessUsage(pid: r.pid, name: r.name, watts: a.watts,
                                                               cpuPercent: a.cpu, memoryBytes: r.footprint))
         }
         return averages.map { key, watts in
@@ -193,14 +195,28 @@ public struct AppEnergyTracker: Sendable {
     public func heavyApps() -> [AppUsage] {
         usages().filter { heavy.contains($0.key) }
     }
+
+    /// Whether an app is on the significant-energy list, for callers that
+    /// already have `usages()` and don't want it built twice.
+    public func isHeavy(_ key: String) -> Bool { heavy.contains(key) }
 }
 
 /// Reads every readable process's counters.
 public final class ProcessEnergyReader {
     private typealias ResponsibleFn = @convention(c) (pid_t) -> pid_t
     private let responsibleFor: ResponsibleFn?
-    /// pid → (app key, responsible pid, name); fixed for a pid's life.
-    private var cache: [pid_t: (String, pid_t, String)] = [:]
+    private struct Identity {
+        let key: String
+        let responsible: pid_t
+        let name: String
+        /// Process start time; a cached pid whose start time changed was reused.
+        let started: UInt64
+    }
+    /// pid → app key, responsible pid and name, resolved once per process.
+    private var cache: [pid_t: Identity] = [:]
+    /// Buffer for the pid list, kept between reads.
+    private var pids: [pid_t] = []
+    private let uid = getuid()
     /// rusage CPU times are Mach ticks (125/3 ns each on Apple silicon).
     private let tickNS: Double
 
@@ -216,38 +232,48 @@ public final class ProcessEnergyReader {
         tickNS = tb.denom == 0 ? 1 : Double(tb.numer) / Double(tb.denom)
     }
 
+    /// Only the user's own processes are readable (rusage of root's and other
+    /// users' fails with EPERM), so only those are listed: about 550 of 780
+    /// pids on this Mac, and no wasted calls on the rest.
     public func read() -> [ProcessEnergy] {
-        let count = proc_listallpids(nil, 0)
-        guard count > 0 else { return [] }
-        var pids = [pid_t](repeating: 0, count: Int(count) + 64)
-        let got = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size)))
+        let stride = MemoryLayout<pid_t>.size
+        let needed = Int(proc_listpids(UInt32(PROC_UID_ONLY), uid, nil, 0)) / stride
+        guard needed > 0 else { return [] }
+        if pids.count < needed + 64 { pids = [pid_t](repeating: 0, count: needed + 64) }
+        let got = Int(proc_listpids(UInt32(PROC_UID_ONLY), uid, &pids, Int32(pids.count * stride))) / stride
         var out: [ProcessEnergy] = []
         out.reserveCapacity(got)
-        var seen = Set<pid_t>()
+        var seen = 0
         for pid in pids.prefix(got) where pid > 0 {
             var info = rusage_info_v6()
             let ok = withUnsafeMutablePointer(to: &info) { p in
                 p.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(pid, RUSAGE_INFO_V6, $0) }
             } == 0
             guard ok else { continue }
-            seen.insert(pid)
-            let (key, resp, name): (String, pid_t, String)
-            if let cached = cache[pid] {
-                (key, resp, name) = cached
+            seen += 1
+            let id: Identity
+            if let cached = cache[pid], cached.started == info.ri_proc_start_abstime {
+                id = cached
             } else {
                 let r = responsibleFor?(pid) ?? pid
                 let owner = r > 0 ? r : pid
                 let own = Self.path(pid)
-                key = Self.appKey(forExecutable: Self.path(owner) ?? own ?? "pid \(pid)")
-                resp = owner
-                name = own.map(Self.displayName(forExecutable:)) ?? "pid \(pid)"
-                cache[pid] = (key, resp, name)
+                id = Identity(key: Self.appKey(forExecutable: Self.path(owner) ?? own ?? "pid \(pid)"),
+                              responsible: owner,
+                              name: own.map(Self.displayName(forExecutable:)) ?? "pid \(pid)",
+                              started: info.ri_proc_start_abstime)
+                cache[pid] = id
             }
             let ticks = info.ri_user_time &+ info.ri_system_time
-            out.append(ProcessEnergy(pid: pid, energyNJ: info.ri_energy_nj, appKey: key, responsiblePID: resp,
-                                     cpuNS: UInt64(Double(ticks) * tickNS), footprint: info.ri_phys_footprint, name: name))
+            out.append(ProcessEnergy(pid: pid, energyNJ: info.ri_energy_nj, appKey: id.key, responsiblePID: id.responsible,
+                                     cpuNS: UInt64(Double(ticks) * tickNS), footprint: info.ri_phys_footprint, name: id.name))
         }
-        cache = cache.filter { seen.contains($0.key) }
+        // Every pid read this time is in the cache, so a larger cache means
+        // processes have exited; only then is a pass over it worth making.
+        if cache.count > seen {
+            let live = Set(out.map(\.pid))
+            cache = cache.filter { live.contains($0.key) }
+        }
         return out
     }
 

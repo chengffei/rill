@@ -13,8 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private let settings = AppSettings.shared
     private var subscriptions: Set<AnyCancellable> = []
-    private var shownSymbol = ""
+    private var shownGlyph: (percent: Int, mark: BatteryGlyph.Mark)?
     private var shownTitle = ""
+    private static let titleFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+    private static let debug = ProcessInfo.processInfo.environment["RILL_DEBUG"] != nil
     private var appearanceObservation: NSKeyValueObservation?
 
     private func syncPopoverAppearance() {
@@ -210,7 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let s else {
             button.image = NSImage(systemSymbolName: "bolt.slash", accessibilityDescription: nil)
             button.title = ""
-            shownSymbol = ""
+            shownGlyph = nil
             return
         }
         let mark: BatteryGlyph.Mark
@@ -220,27 +222,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .full, .paused, .assisting: mark = .plug; watts = s.inputWatts
         case .onBattery: mark = .none; watts = -s.batteryWatts
         }
-        let symbol = BatteryGlyph.key(percent: s.percent, mark: mark)
         let title = showsPower ? " " + PowerFormat.watts(watts) : ""
         // Redraw the menu bar only when what it shows changes.
-        guard symbol != shownSymbol || title != shownTitle else { return }
-        let symbolChanged = symbol != shownSymbol
-        shownSymbol = symbol
+        let glyphChanged = shownGlyph?.percent != s.percent || shownGlyph?.mark != mark
+        guard glyphChanged || title != shownTitle else { return }
+        shownGlyph = (s.percent, mark)
         shownTitle = title
-        if ProcessInfo.processInfo.environment["RILL_DEBUG"] != nil {
-            print("menu bar \(symbol)\(title) system=\(PowerFormat.watts(s.systemWatts)) battery=\(s.batteryWatts) temp=\(s.temperature ?? -1) state=\(s.state)")
+        if Self.debug {
+            print("menu bar \(s.percent)-\(mark)\(title) system=\(PowerFormat.watts(s.systemWatts)) battery=\(s.batteryWatts) temp=\(s.temperature ?? -1) state=\(s.state)")
             fflush(stdout)
         }
-        button.toolTip = "\(s.percent)%"
-        if symbolChanged {
+        if glyphChanged {
+            button.toolTip = "\(s.percent)%"
             button.image = BatteryGlyph.image(percent: s.percent, mark: mark)
-
         }
         button.imagePosition = title.isEmpty ? .imageOnly : .imageLeading
-        button.attributedTitle = NSAttributedString(
-            string: title,
-            attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)]
-        )
+        button.attributedTitle = NSAttributedString(string: title, attributes: [.font: Self.titleFont])
     }
 
     /// Matches the popover to its content's height, measured before showing
@@ -261,8 +258,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if popover.isShown {
             popover.performClose(sender)
         } else {
+            // Publishing (in popoverVisible) and measuring happen before the
+            // panel shows; sizeThatFits evaluates the pending update itself.
             model.popoverVisible = true
             fitPopover(force: true)
+            if Self.debug { print("popover content size \(popover.contentSize)"); fflush(stdout) }
             popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
         }
@@ -355,8 +355,12 @@ extension AppDelegate: NSWindowDelegate {
         if !othersOpen { showInDock(false) }
     }
 
-    func windowDidMiniaturize(_ notification: Notification) { model.dashboardVisible = false }
-    func windowDidDeminiaturize(_ notification: Notification) { model.dashboardVisible = true }
+    /// Covered by other windows, on another Space or minimized, the Dashboard
+    /// gets no updates (its charts are the most expensive views to refresh).
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard let w = notification.object as? NSWindow, w === dashboard else { return }
+        model.dashboardVisible = w.isVisible && w.occlusionState.contains(.visible)
+    }
 }
 
 extension AppDelegate: NSMenuItemValidation {

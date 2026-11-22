@@ -5,8 +5,9 @@ import Foundation
 public struct LiveReading: Equatable, Sendable {
     /// PDTR: power in from the adapter, watts.
     public var inputWatts: Double
-    /// PSTR: SMC's whole-system power. Kept for reference; the Mac's draw is
-    /// derived from input and battery (see `merging`).
+    /// Whole-system power as the SMC's PSTR reports it. No longer read (0 from
+    /// `LiveSensors`): the Mac's draw is derived from input and battery in
+    /// `merging`, and PSTR settles at a different speed (2026-11-05).
     public var systemWatts: Double
     /// B0AV / B0AC: battery voltage and current, positive while charging.
     public var batteryVolts: Double
@@ -27,15 +28,16 @@ public final class LiveSensors {
     private let smc: SMC
 
     public init?() {
-        guard let smc = SMC(), smc.double("PSTR") != nil, smc.double("B0AV") != nil else { return nil }
+        guard let smc = SMC(), smc.double("PDTR") != nil, smc.double("B0AV") != nil, smc.double("B0AC") != nil else { return nil }
         self.smc = smc
     }
 
+    /// Four keys, one SMC round trip each (see `SMC.raw`).
     public func read() -> LiveReading? {
-        guard let system = smc.double("PSTR"), let mv = smc.double("B0AV"), let ma = smc.double("B0AC") else { return nil }
+        guard let mv = smc.double("B0AV"), let ma = smc.double("B0AC") else { return nil }
         return LiveReading(
             inputWatts: max(0, smc.double("PDTR") ?? 0),
-            systemWatts: max(0, system),
+            systemWatts: 0,
             batteryVolts: mv / 1000,
             batteryAmps: ma / 1000,
             temperature: smc.double("TB0T")
