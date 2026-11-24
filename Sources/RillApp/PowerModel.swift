@@ -22,6 +22,10 @@ final class PowerModel {
     private(set) var heavyApps: [AppUsage] = []
     /// Every app with measurable activity, for the Apps table.
     private(set) var allApps: [AppUsage] = []
+    /// Whole-machine CPU, load and memory; read only while the Dashboard shows.
+    private(set) var systemLoad: SystemLoad?
+    /// Total CPU % of recent readings (4 s apart), oldest first, for the sparkline.
+    private(set) var cpuHistory: [Double] = []
     /// False until the first two energy readings give a rate.
     private(set) var energyMeasured = false
 
@@ -31,6 +35,11 @@ final class PowerModel {
     /// Responsible pid and bundle path of apps the window server reports hung.
     @ObservationIgnored private var hung: [(pid: pid_t, key: String?)] = []
     @ObservationIgnored private var lastEnergyRead = Date.distantPast
+    @ObservationIgnored private let loadReader = SystemLoadReader()
+    @ObservationIgnored private var lastLoadRead = Date.distantPast
+    @ObservationIgnored private var latestLoad: SystemLoad?
+    @ObservationIgnored private var latestCPUHistory: [Double] = []
+    static let cpuHistoryLength = 45
     /// The app lists need rebuilding from the tracker before the next publish.
     @ObservationIgnored private var appsDirty = false
 
@@ -110,7 +119,24 @@ final class PowerModel {
         lastEnergyRead = now
         energyTracker.ingest(energyReader.read(), at: now)
         hung = hangDetector.check().map { ($0.processIdentifier, $0.bundleURL?.path) }
+        readLoad(at: now)
         appsDirty = true
+    }
+
+    /// A few syscalls; also taken at the hidden cadence so that on opening
+    /// the CPU share covers at most the last 20 s. The sparkline restarts
+    /// after a gap instead of joining across it.
+    private func readLoad(at now: Date) {
+        if now.timeIntervalSince(lastLoadRead) > 3 * Self.energyIntervalShown {
+            latestCPUHistory = []
+        }
+        lastLoadRead = now
+        let load = loadReader.read()
+        if let cpu = load.cpuTotal {
+            latestCPUHistory.append(cpu)
+            if latestCPUHistory.count > Self.cpuHistoryLength { latestCPUHistory.removeFirst() }
+        }
+        latestLoad = load
     }
 
     /// Averages the last two samples (about 4 s) to steady the readings.
@@ -164,6 +190,8 @@ final class PowerModel {
         if heavy != heavyApps { heavyApps = heavy }
         if !energyMeasured, !all.isEmpty { energyMeasured = true }
         if dashboardVisible {
+            if latestLoad != systemLoad { systemLoad = latestLoad }
+            if latestCPUHistory != cpuHistory { cpuHistory = latestCPUHistory }
             let everything = stuck + all.filter { !stuckKeys.contains($0.key) }
             if everything != allApps { allApps = everything }
         }

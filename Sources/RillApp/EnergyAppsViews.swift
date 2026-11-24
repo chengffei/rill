@@ -134,7 +134,11 @@ struct AppsPage: View {
                 ContentUnavailableView(L("正在统计", "Measuring"), systemImage: "hourglass",
                                        description: Text(L("几秒后出现各应用的用量。", "App usage appears in a few seconds.")))
             } else {
-                table
+                VStack(spacing: 0) {
+                    SystemLoadBar(model: model)
+                    Divider()
+                    table
+                }
             }
         }
         .searchable(text: $search, placement: .toolbar, prompt: L("搜索应用或进程", "Search apps or processes"))
@@ -221,6 +225,140 @@ struct AppsPage: View {
             if let p = app.processes.first(where: { Self.processRowID($0.pid) == id }) { return (app, p) }
         }
         return nil
+    }
+}
+
+/// Whole-machine load above the Apps table, so a slow Mac can be told apart
+/// from one busy app: CPU of all cores (with a ~3 min sparkline), load
+/// average against the core count, memory used and memory pressure.
+/// Reads only `systemLoad` and `cpuHistory`, so the table does not redraw for it.
+struct SystemLoadBar: View {
+    let model: PowerModel
+
+    var body: some View {
+        let load = model.systemLoad
+        HStack(alignment: .top, spacing: 0) {
+            metric(L("CPU", "CPU"),
+                   value: load?.cpuTotal.map { String(format: "%.0f%%", $0) } ?? "–",
+                   detail: cpuDetail(load),
+                   tint: (load?.cpuTotal ?? 0) >= 80 ? .orange : nil) {
+                Sparkline(values: model.cpuHistory)
+                    .frame(width: 72, height: 22)
+            }
+            .help(cpuHelp(load))
+            separator
+            metric(L("负载", "Load"),
+                   value: load.flatMap { $0.loadAverage.first }.map { String(format: "%.2f", $0) } ?? "–",
+                   detail: loadDetail(load),
+                   tint: overloaded(load) ? .orange : nil) { EmptyView() }
+                .help(L("近 1 分钟平均有多少个线程在跑或在排队。长期高于核心数说明 CPU 不够用。",
+                        "Threads running or waiting, averaged over 1 minute. Staying above the core count means the CPU is saturated."))
+            separator
+            metric(L("内存", "Memory"),
+                   value: load.map { Format.bytes($0.memoryUsed) } ?? "–",
+                   detail: load.map { L("共 \(Format.bytes($0.memoryTotal))，压缩 \(Format.bytes($0.memoryCompressed))",
+                                         "of \(Format.bytes($0.memoryTotal)), \(Format.bytes($0.memoryCompressed)) compressed") } ?? " ",
+                   tint: nil) { EmptyView() }
+                .help(L("与活动监视器的「已使用内存」同一口径：应用内存、联动内存、被压缩内存之和。",
+                        "Same as Activity Monitor's Memory Used: app, wired and compressed memory."))
+            separator
+            metric(L("内存压力", "Memory Pressure"),
+                   value: load.map { pressureName($0.pressure) } ?? "–",
+                   detail: load.map { L("交换 \(Format.bytes($0.swapUsed))", "Swap \(Format.bytes($0.swapUsed))") } ?? " ",
+                   tint: load.map { pressureTint($0.pressure) } ?? nil) { EmptyView() }
+                .help(L("黄色或红色表示内存不够，系统在压缩和换页，会变卡。",
+                        "Yellow or red means memory is short and macOS is compressing and swapping, which slows things down."))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
+    private var separator: some View {
+        Divider().frame(height: 36).padding(.horizontal, 14)
+    }
+
+    private func metric<Accessory: View>(_ title: String, value: String, detail: String, tint: Color?,
+                                         @ViewBuilder accessory: () -> Accessory) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title).font(.system(size: 11)).foregroundStyle(.secondary)
+            HStack(alignment: .center, spacing: 8) {
+                Text(value)
+                    .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(tint ?? .primary)
+                accessory()
+            }
+            Text(detail).font(.system(size: 11).monospacedDigit()).foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func cpuDetail(_ load: SystemLoad?) -> String {
+        guard let load, let u = load.cpuUser, let s = load.cpuSystem else { return " " }
+        return L(String(format: "用户 %.0f%%，系统 %.0f%%", u, s),
+                 String(format: "User %.0f%%, system %.0f%%", u, s))
+    }
+
+    private func cpuHelp(_ load: SystemLoad?) -> String {
+        let busy = load?.busyCores.map { String(format: "%.1f", $0) } ?? "–"
+        return L("全部核心合计，100% 是所有核心满载，现在约等于 \(busy) 个核心满载。表格里的 CPU 按单核算，100% 是一个核心。曲线是近 3 分钟。",
+                 "Share of all cores; 100% is every core busy. Now about \(busy) cores' worth. The table's CPU column counts one core as 100%. The line covers the last 3 minutes.")
+    }
+
+    private func loadDetail(_ load: SystemLoad?) -> String {
+        guard let load, load.loadAverage.count == 3 else { return " " }
+        let a = load.loadAverage
+        return L(String(format: "5 分 %.2f，15 分 %.2f，%d 核", a[1], a[2], load.cores),
+                 String(format: "5 min %.2f, 15 min %.2f, %d cores", a[1], a[2], load.cores))
+    }
+
+    private func overloaded(_ load: SystemLoad?) -> Bool {
+        guard let load, let one = load.loadAverage.first else { return false }
+        return one > Double(load.cores)
+    }
+
+    private func pressureName(_ p: MemoryPressure) -> String {
+        switch p {
+        case .normal: return L("正常", "Normal")
+        case .warning: return L("偏高", "Elevated")
+        case .critical: return L("严重", "Critical")
+        }
+    }
+
+    private func pressureTint(_ p: MemoryPressure) -> Color? {
+        switch p {
+        case .normal: return .green
+        case .warning: return .orange
+        case .critical: return .red
+        }
+    }
+}
+
+/// A plain line over a fixed 0–100 % scale; one Path, no Charts, so a redraw
+/// every 4 s stays cheap.
+private struct Sparkline: View {
+    let values: [Double]
+
+    var body: some View {
+        Canvas { ctx, size in
+            let n = PowerModel.cpuHistoryLength
+            guard values.count > 1 else { return }
+            let step = size.width / CGFloat(n - 1)
+            let x0 = size.width - step * CGFloat(values.count - 1)
+            var line = Path()
+            for (i, v) in values.enumerated() {
+                let p = CGPoint(x: x0 + step * CGFloat(i), y: size.height * (1 - CGFloat(min(max(v, 0), 100)) / 100))
+                i == 0 ? line.move(to: p) : line.addLine(to: p)
+            }
+            var fill = line
+            fill.addLine(to: CGPoint(x: size.width, y: size.height))
+            fill.addLine(to: CGPoint(x: x0, y: size.height))
+            fill.closeSubpath()
+            ctx.fill(fill, with: .color(.accentColor.opacity(0.15)))
+            ctx.stroke(line, with: .color(.accentColor), lineWidth: 1.2)
+        }
+        .background(RoundedRectangle(cornerRadius: 3).fill(Color.primary.opacity(0.04)))
+        .accessibilityHidden(true)
     }
 }
 
