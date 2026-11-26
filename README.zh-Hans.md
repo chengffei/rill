@@ -26,7 +26,7 @@
 
 一个 macOS 菜单栏应用，实时显示 Mac 的电都去了哪里：充电器送进多少，Mac 用掉多少，电池充入或放出多少，以及哪些应用最耗电。
 
-> **状态：早期（0.8）。** 需要 Apple 芯片、macOS 26 或更高版本。界面支持 English、简体中文、繁體中文、日本語、한국어、Français、Deutsch 和 Español。
+> **状态：早期（0.9）。** 需要 Apple 芯片、macOS 26 或更高版本。界面支持 English、简体中文、繁體中文、日本語、한국어、Français、Deutsch 和 Español。
 
 ## 安装
 

@@ -26,7 +26,7 @@
 
 Una app para la barra de menús de macOS que muestra en directo adónde va la energía de tu Mac: lo que entrega el cargador, lo que consume el Mac, lo que entra en la batería o sale de ella, y qué apps consumen más energía.
 
-> **Estado: fase inicial (0.8).** Requiere macOS 26 o posterior en un Mac con chip de Apple. Interfaz en English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch y Español.
+> **Estado: fase inicial (0.9).** Requiere macOS 26 o posterior en un Mac con chip de Apple. Interfaz en English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch y Español.
 
 ## Instalación
 

@@ -26,7 +26,7 @@
 
 Eine App für die macOS-Menüleiste, die live zeigt, wohin die Energie deines Mac fließt: was das Netzteil liefert, was der Mac verbraucht, was in die Batterie hinein- oder aus ihr herausfließt und welche Apps am meisten Energie verbrauchen.
 
-> **Status: früh (0.8).** Erfordert macOS 26 oder neuer auf einem Mac mit Apple Chip. Oberfläche auf English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch und Español.
+> **Status: früh (0.9).** Erfordert macOS 26 oder neuer auf einem Mac mit Apple Chip. Oberfläche auf English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch und Español.
 
 ## Installation
 

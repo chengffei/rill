@@ -26,7 +26,7 @@
 
 一個 macOS 選單列 App，即時顯示 Mac 的電力流向：充電器送進多少、Mac 用掉多少、電池充入或放出多少，以及哪些 App 最耗電。
 
-> **狀態：早期（0.8）。** 需要 Apple 晶片、macOS 26 或以上版本。介面支援 English、简体中文、繁體中文、日本語、한국어、Français、Deutsch 和 Español。
+> **狀態：早期（0.9）。** 需要 Apple 晶片、macOS 26 或以上版本。介面支援 English、简体中文、繁體中文、日本語、한국어、Français、Deutsch 和 Español。
 
 ## 安裝
 
