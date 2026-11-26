@@ -136,9 +136,77 @@ private struct OverviewPage: View {
                 Text(L("CPU 能耗按应用汇总，近 20 秒平均 1 W 及以上计入。", "CPU energy by app; 1 W or more over 20 seconds counts."))
             }
 
+            MemorySection(model: model)
+
             TodaySection(minutes: model.minutes, partial: model.partialMinute)
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Memory at a glance and the apps worth quitting to free it: Dock apps of
+/// 1 GB or more not in front for 30 minutes. Most of their memory is usually
+/// compressed or swapped already; only quitting gives it back.
+private struct MemorySection: View {
+    let model: PowerModel
+
+    var body: some View {
+        Section {
+            if let load = model.systemLoad {
+                LabeledContent(L("内存压力", "Memory Pressure")) {
+                    Text(load.pressure.name).foregroundStyle(load.pressure.tint)
+                }
+                LabeledContent(L("已使用", "Used")) {
+                    Text(L("\(Format.bytes(load.memoryUsed)) / \(Format.bytes(load.memoryTotal))，压缩 \(Format.bytes(load.memoryCompressed))",
+                           "\(Format.bytes(load.memoryUsed)) of \(Format.bytes(load.memoryTotal)), \(Format.bytes(load.memoryCompressed)) compressed"))
+                        .monospacedDigit()
+                }
+                LabeledContent(L("交换", "Swap")) {
+                    Text(Format.bytes(load.swapUsed))
+                        .foregroundStyle(load.memoryTight && load.pressure == .normal ? .orange : .secondary)
+                        .monospacedDigit()
+                }
+            }
+            if model.idleMemoryApps.isEmpty {
+                Text(model.energyMeasured ? L("没有闲置的大内存应用", "No idle apps holding much memory")
+                                          : L("正在统计，几秒后出现", "Measuring, results in a few seconds"))
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(model.idleMemoryApps.prefix(5)) { idle in
+                    IdleMemoryAppRow(idle: idle)
+                }
+            }
+        } header: {
+            Text(L("内存", "Memory"))
+        } footer: {
+            Text(L("列出 1 GB 及以上、30 分钟没切到前台的应用。它们的内存多半已被压缩或换到磁盘，退出才能真正释放。内存压力偏高或交换超过内存的四分之一时，面板也会提示。",
+                   "Apps of 1 GB or more not in front for 30 minutes. Most of their memory is already compressed or swapped; quitting is what frees it. The panel suggests them too when pressure is elevated or swap exceeds a quarter of memory."))
+        }
+    }
+}
+
+private struct IdleMemoryAppRow: View {
+    let idle: IdleMemoryApp
+
+    var body: some View {
+        let app = idle.usage
+        let info = AppIdentity.info(for: app)
+        LabeledContent {
+            HStack(spacing: 10) {
+                Text(Format.bytes(app.memoryBytes)).monospacedDigit()
+                Text(L("\(IdleFormat.since(idle.lastActive))未用", "idle \(IdleFormat.since(idle.lastActive))"))
+                    .foregroundStyle(.secondary).monospacedDigit()
+                Button(L("退出…", "Quit…")) { AppActions.confirmQuit(app) }
+                    .controlSize(.small)
+            }
+        } label: {
+            Label {
+                Text(info.name)
+            } icon: {
+                Image(nsImage: info.icon).resizable().frame(width: 18, height: 18)
+            }
+        }
+        .contextMenu { AppContextMenu(app: app) }
     }
 }
 

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 import RillCore
@@ -26,12 +27,20 @@ final class PowerModel {
     private(set) var systemLoad: SystemLoad?
     /// Total CPU % of recent readings (4 s apart), oldest first, for the sparkline.
     private(set) var cpuHistory: [Double] = []
+    /// Dock apps holding ≥ 1 GB that haven't been in front for 30 minutes.
+    private(set) var idleMemoryApps: [IdleMemoryApp] = []
+    /// Memory pressure above normal or heavy swapping; the panel then
+    /// suggests quitting `idleMemoryApps`.
+    private(set) var memoryTight = false
     /// False until the first two energy readings give a rate.
     private(set) var energyMeasured = false
 
     @ObservationIgnored private let energyReader = ProcessEnergyReader()
     @ObservationIgnored private var energyTracker = AppEnergyTracker(timeConstant: 20)
     @ObservationIgnored private let hangDetector = HangDetector()
+    @ObservationIgnored private var idleTracker = IdleMemoryTracker(
+        idleAfter: ProcessInfo.processInfo.environment["RILL_IDLE_MINUTES"].flatMap(Double.init).map { $0 * 60 } ?? IdleMemoryTracker.idleAfter)
+    @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
     /// Responsible pid and bundle path of apps the window server reports hung.
     @ObservationIgnored private var hung: [(pid: pid_t, key: String?)] = []
     @ObservationIgnored private var lastEnergyRead = Date.distantPast
@@ -71,6 +80,7 @@ final class PowerModel {
         store.prune()
         savedMinutes = store.load(since: Date().addingTimeInterval(-7 * 86400))
         minutes = savedMinutes
+        watchApps()
         sample()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.sample() }
@@ -112,6 +122,37 @@ final class PowerModel {
         }
         if isVisible { publish() }
         onUpdate?(s)
+    }
+
+    /// The app-in-front clock for `idleMemoryApps`. Running apps start
+    /// counting now; activations, launches and quits come by notification,
+    /// so a brief switch between energy reads still counts.
+    private func watchApps() {
+        let now = Date()
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            if let key = Self.key(app) { idleTracker.noteSeen(key, at: now) }
+        }
+        if let front = NSWorkspace.shared.frontmostApplication, let key = Self.key(front) {
+            idleTracker.noteActive(key, at: now)
+        }
+        let center = NSWorkspace.shared.notificationCenter
+        let handle: (Notification.Name, @escaping (inout IdleMemoryTracker, String) -> Void) -> NSObjectProtocol = { name, apply in
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                      let key = Self.key(app) else { return }
+                MainActor.assumeIsolated { if let self { apply(&self.idleTracker, key) } }
+            }
+        }
+        workspaceObservers = [
+            handle(NSWorkspace.didActivateApplicationNotification) { $0.noteActive($1, at: Date()) },
+            handle(NSWorkspace.didLaunchApplicationNotification) { $0.noteSeen($1, at: Date()) },
+            handle(NSWorkspace.didTerminateApplicationNotification) { $0.forget($1) },
+        ]
+    }
+
+    /// The same key the energy reader groups by: the outermost .app.
+    private static func key(_ app: NSRunningApplication) -> String? {
+        app.executableURL.map { ProcessEnergyReader.appKey(forExecutable: $0.path) }
     }
 
     /// Reading ~550 processes costs about a millisecond.
@@ -189,6 +230,15 @@ final class PowerModel {
         let heavy = stuck + all.filter { energyTracker.isHeavy($0.key) && !stuckKeys.contains($0.key) }
         if heavy != heavyApps { heavyApps = heavy }
         if !energyMeasured, !all.isEmpty { energyMeasured = true }
+        let dock = Set(NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }.map(\.processIdentifier))
+        // Activation is notified once; an app kept in front for hours is still in use.
+        if let front = NSWorkspace.shared.frontmostApplication, let key = Self.key(front) {
+            idleTracker.noteActive(key, at: Date())
+        }
+        let idle = idleTracker.idle(among: all.filter { dock.contains($0.responsiblePID) && AppActions.canQuit($0) }, at: Date())
+        if idle != idleMemoryApps { idleMemoryApps = idle }
+        let tight = latestLoad?.memoryTight ?? false
+        if tight != memoryTight { memoryTight = tight }
         if dashboardVisible {
             if latestLoad != systemLoad { systemLoad = latestLoad }
             if latestCPUHistory != cpuHistory { cpuHistory = latestCPUHistory }

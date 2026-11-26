@@ -29,6 +29,10 @@ struct PopoverView: View {
                     .glassCard()
                 HeavyAppsRow(apps: model.heavyApps)
                     .glassCard()
+                if model.memoryTight, !model.idleMemoryApps.isEmpty {
+                    IdleMemoryRow(apps: model.idleMemoryApps)
+                        .glassCard()
+                }
                 chart
                 details(s)
                     .padding(14)

@@ -263,9 +263,9 @@ struct SystemLoadBar: View {
                         "Same as Activity Monitor's Memory Used: app, wired and compressed memory."))
             separator
             metric(L("内存压力", "Memory Pressure"),
-                   value: load.map { pressureName($0.pressure) } ?? "–",
+                   value: load.map { $0.pressure.name } ?? "–",
                    detail: load.map { L("交换 \(Format.bytes($0.swapUsed))", "Swap \(Format.bytes($0.swapUsed))") } ?? " ",
-                   tint: load.map { pressureTint($0.pressure) } ?? nil) { EmptyView() }
+                   tint: load.map { $0.pressure.tint } ?? nil) { EmptyView() }
                 .help(L("黄色或红色表示内存不够，系统在压缩和换页，会变卡。",
                         "Yellow or red means memory is short and macOS is compressing and swapping, which slows things down."))
         }
@@ -317,21 +317,6 @@ struct SystemLoadBar: View {
         return one > Double(load.cores)
     }
 
-    private func pressureName(_ p: MemoryPressure) -> String {
-        switch p {
-        case .normal: return L("正常", "Normal")
-        case .warning: return L("偏高", "Elevated")
-        case .critical: return L("严重", "Critical")
-        }
-    }
-
-    private func pressureTint(_ p: MemoryPressure) -> Color? {
-        switch p {
-        case .normal: return .green
-        case .warning: return .orange
-        case .critical: return .red
-        }
-    }
 }
 
 /// A plain line over a fixed 0–100 % scale; one Path, no Charts, so a redraw
@@ -376,5 +361,82 @@ struct AppContextMenu: View {
         }
         Divider()
         Button(L("打开活动监视器", "Open Activity Monitor")) { AppActions.openActivityMonitor() }
+    }
+}
+
+extension MemoryPressure {
+    var name: String {
+        switch self {
+        case .normal: return L("正常", "Normal")
+        case .warning: return L("偏高", "Elevated")
+        case .critical: return L("严重", "Critical")
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .normal: return .green
+        case .warning: return .orange
+        case .critical: return .red
+        }
+    }
+}
+
+enum IdleFormat {
+    /// "35 分钟" / "2 小时" since the app was last in front.
+    static func since(_ date: Date, now: Date = Date()) -> String {
+        let m = max(0, Int(now.timeIntervalSince(date) / 60))
+        return m < 60 ? L("\(m) 分钟", "\(m) min") : L("\(m / 60) 小时", "\(m / 60) h")
+    }
+}
+
+/// The panel's suggestion when memory is short: big apps not used for a
+/// while, with their memory. Click one for the usual menu (quit, end process).
+struct IdleMemoryRow: View {
+    let apps: [IdleMemoryApp]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L("内存紧张", "Memory Is Short"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.primary)
+                Text(L("这些应用闲置中", "These apps sit idle"))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Color.secondary)
+            }
+            .fixedSize()
+            Spacer(minLength: 8)
+            ForEach(apps.prefix(3)) { idle in
+                let app = idle.usage
+                let info = AppIdentity.info(for: app)
+                Button { AppActions.showMenu(for: app) } label: {
+                    // Three names don't fit beside the title; the icon names
+                    // the app and the tooltip spells it out.
+                    HStack(spacing: 3) {
+                        Image(nsImage: info.icon)
+                            .resizable()
+                            .frame(width: 20, height: 20)
+                        Text(Format.bytes(app.memoryBytes))
+                            .font(.system(size: 11.5, weight: .medium).monospacedDigit())
+                            .foregroundStyle(Color.primary)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(L("\(info.name)：占用 \(Format.bytes(app.memoryBytes))，\(IdleFormat.since(idle.lastActive))没用过。点按可退出",
+                        "\(info.name): \(Format.bytes(app.memoryBytes)), unused for \(IdleFormat.since(idle.lastActive)). Click to quit"))
+            }
+            if apps.count > 3 {
+                Text("+\(apps.count - 3)")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.secondary)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(minHeight: 48)
     }
 }
