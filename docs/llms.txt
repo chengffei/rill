@@ -1,0 +1,17 @@
+# Rill
+
+> Rill is a free, open-source (GPL-3.0) macOS menu bar app for MacBook that shows live power: watts from the charger, into or out of the battery, and used by the Mac, updated every 2 seconds. Requires macOS 26 or later on Apple silicon.
+
+- It lists apps using significant energy (CPU energy per app, grouped by responsible app as in Activity Monitor), flags apps that are not responding, and can quit them after confirmation.
+- It shows memory used, memory pressure and swap. When memory is short (pressure above normal, or swap at least a quarter of RAM), it lists Dock apps using 1 GB or more that have not been frontmost for 30 minutes.
+- History: power, charge, battery temperature and energy used per period, from 1 hour to 7 days; kept on the Mac for 30 days.
+- Battery and charger: health, cycle count, capacity, charger rating, negotiated voltage and current, supported USB-C PD levels.
+- No special permissions. It goes online only when the user chooses Check for Updates. It does not limit charging.
+- Interface in English, Simplified Chinese, Traditional Chinese, Japanese, Korean, French, German and Spanish.
+
+## Links
+
+- [Website](https://chengffei.github.io/rill/)
+- [Source code](https://github.com/chengffei/rill)
+- [Latest release](https://github.com/chengffei/rill/releases/latest)
+- Install: `curl -fsSL https://raw.githubusercontent.com/chengffei/rill/main/install.sh | bash`

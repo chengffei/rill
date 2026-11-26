@@ -56,7 +56,7 @@ struct MemoryRow: View {
             }
             .frame(height: 6)
             HStack(spacing: 0) {
-                Text(L("压缩 \(Format.bytes(load.memoryCompressed))，交换 ", "\(Format.bytes(load.memoryCompressed)) compressed, swap "))
+                Text(L("压缩 %@，交换 ", "%@ compressed, swap ", "\(Format.bytes(load.memoryCompressed))"))
                     .foregroundStyle(Color.secondary)
                 // Swap alone can make memory count as short; say so in colour.
                 Text(Format.bytes(load.swapUsed))
@@ -109,7 +109,7 @@ struct HeavyAppsRow: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help(L("\(info.name)：CPU \(Format.cpu(app.cpuPercent))，近 20 秒平均能耗 \(PowerFormat.watts(app.watts))。点按可退出", "\(info.name): CPU \(Format.cpu(app.cpuPercent)), \(PowerFormat.watts(app.watts)) over 20 s. Click to quit"))
+                    .help(L("%1$@：CPU %2$@，近 20 秒平均能耗 %3$@。点按可退出", "%1$@: CPU %2$@, %3$@ over 20 s. Click to quit", "\(info.name)", "\(Format.cpu(app.cpuPercent))", "\(PowerFormat.watts(app.watts))"))
                 }
                 if apps.count > 3 {
                     Text("+\(apps.count - 3)")
@@ -276,11 +276,11 @@ struct AppsPage: View {
             AppContextMenu(app: app)
         } else if let (app, p) = process(id) {
             if ProcessGuard.canTerminate(path: ProcessEnergyReader.path(p.pid), pid: p.pid) {
-                Button(L("结束「\(p.name)」…", "End “\(p.name)”…")) { AppActions.endProcess(pid: p.pid, name: p.name) }
+                Button(L("结束「%@」…", "End “%@”…", "\(p.name)")) { AppActions.endProcess(pid: p.pid, name: p.name) }
             }
             if p.pid != app.responsiblePID, AppActions.canQuit(app) {
                 let name = AppIdentity.info(for: app).name
-                Button(L("退出 \(name)…", "Quit \(name)…")) { AppActions.confirmQuit(app) }
+                Button(L("退出 %@…", "Quit %@…", "\(name)")) { AppActions.confirmQuit(app) }
             }
             Divider()
             Button(L("打开活动监视器", "Open Activity Monitor")) { AppActions.openActivityMonitor() }
@@ -323,15 +323,14 @@ struct SystemLoadBar: View {
             separator
             metric(L("内存", "Memory"),
                    value: load.map { Format.bytes($0.memoryUsed) } ?? "–",
-                   detail: load.map { L("共 \(Format.bytes($0.memoryTotal))，压缩 \(Format.bytes($0.memoryCompressed))",
-                                         "of \(Format.bytes($0.memoryTotal)), \(Format.bytes($0.memoryCompressed)) compressed") } ?? " ",
+                   detail: load.map { L("共 %1$@，压缩 %2$@", "of %1$@, %2$@ compressed", "\(Format.bytes($0.memoryTotal))", "\(Format.bytes($0.memoryCompressed))") } ?? " ",
                    tint: nil) { EmptyView() }
                 .help(L("与活动监视器的「已使用内存」同一口径：应用内存、联动内存、被压缩内存之和。",
                         "Same as Activity Monitor's Memory Used: app, wired and compressed memory."))
             separator
             metric(L("内存压力", "Memory Pressure"),
                    value: load.map { $0.pressure.name } ?? "–",
-                   detail: load.map { L("交换 \(Format.bytes($0.swapUsed))", "Swap \(Format.bytes($0.swapUsed))") } ?? " ",
+                   detail: load.map { L("交换 %@", "Swap %@", "\(Format.bytes($0.swapUsed))") } ?? " ",
                    tint: load.map { $0.pressure.tint } ?? nil) { EmptyView() }
                 .help(L("黄色或红色表示内存不够，系统在压缩和换页，会变卡。",
                         "Yellow or red means memory is short and macOS is compressing and swapping, which slows things down."))
@@ -362,21 +361,18 @@ struct SystemLoadBar: View {
 
     private func cpuDetail(_ load: SystemLoad?) -> String {
         guard let load, let u = load.cpuUser, let s = load.cpuSystem else { return " " }
-        return L(String(format: "用户 %.0f%%，系统 %.0f%%", u, s),
-                 String(format: "User %.0f%%, system %.0f%%", u, s))
+        return L("用户 %.0f%%，系统 %.0f%%", "User %.0f%%, system %.0f%%", u, s)
     }
 
     private func cpuHelp(_ load: SystemLoad?) -> String {
         let busy = load?.busyCores.map { String(format: "%.1f", $0) } ?? "–"
-        return L("全部核心合计，100% 是所有核心满载，现在约等于 \(busy) 个核心满载。表格里的 CPU 按单核算，100% 是一个核心。曲线是近 3 分钟。",
-                 "Share of all cores; 100% is every core busy. Now about \(busy) cores' worth. The table's CPU column counts one core as 100%. The line covers the last 3 minutes.")
+        return L("全部核心合计，100%% 是所有核心满载，现在约等于 %@ 个核心满载。表格里的 CPU 按单核算，100%% 是一个核心。曲线是近 3 分钟。", "Share of all cores; 100%% is every core busy. Now about %@ cores' worth. The table's CPU column counts one core as 100%%. The line covers the last 3 minutes.", "\(busy)")
     }
 
     private func loadDetail(_ load: SystemLoad?) -> String {
         guard let load, load.loadAverage.count == 3 else { return " " }
         let a = load.loadAverage
-        return L(String(format: "5 分 %.2f，15 分 %.2f，%d 核", a[1], a[2], load.cores),
-                 String(format: "5 min %.2f, 15 min %.2f, %d cores", a[1], a[2], load.cores))
+        return L("5 分 %.2f，15 分 %.2f，%d 核", "5 min %.2f, 15 min %.2f, %d cores", a[1], a[2], load.cores)
     }
 
     private func overloaded(_ load: SystemLoad?) -> Bool {
@@ -421,10 +417,10 @@ struct AppContextMenu: View {
     var body: some View {
         let info = AppIdentity.info(for: app)
         if AppActions.canQuit(app) {
-            Button(L("退出 \(info.name)…", "Quit \(info.name)…")) { AppActions.confirmQuit(app) }
+            Button(L("退出 %@…", "Quit %@…", "\(info.name)")) { AppActions.confirmQuit(app) }
         }
         if let top = AppActions.busiestOtherProcess(app) {
-            Button(L("结束「\(top.name)」…", "End “\(top.name)”…")) { AppActions.endProcess(pid: top.pid, name: top.name) }
+            Button(L("结束「%@」…", "End “%@”…", "\(top.name)")) { AppActions.endProcess(pid: top.pid, name: top.name) }
         }
         Divider()
         Button(L("打开活动监视器", "Open Activity Monitor")) { AppActions.openActivityMonitor() }
@@ -453,7 +449,7 @@ enum IdleFormat {
     /// "35 分钟" / "2 小时" since the app was last in front.
     static func since(_ date: Date, now: Date = Date()) -> String {
         let m = max(0, Int(now.timeIntervalSince(date) / 60))
-        return m < 60 ? L("\(m) 分钟", "\(m) min") : L("\(m / 60) 小时", "\(m / 60) h")
+        return m < 60 ? L("%@ 分钟", "%@ min", "\(m)") : L("%@ 小时", "%@ h", "\(m / 60)")
     }
 }
 
@@ -488,8 +484,7 @@ struct IdleMemoryRow: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(L("\(info.name)：占用 \(Format.bytes(app.memoryBytes))，\(IdleFormat.since(idle.lastActive))没用过。点按可退出",
-                        "\(info.name): \(Format.bytes(app.memoryBytes)), unused for \(IdleFormat.since(idle.lastActive)). Click to quit"))
+                .help(L("%1$@：占用 %2$@，%3$@没用过。点按可退出", "%1$@: %2$@, unused for %3$@. Click to quit", "\(info.name)", "\(Format.bytes(app.memoryBytes))", "\(IdleFormat.since(idle.lastActive))"))
             }
             if apps.count > 3 {
                 Text("+\(apps.count - 3)")

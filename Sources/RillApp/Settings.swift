@@ -5,14 +5,35 @@ import ServiceManagement
 import SwiftUI
 
 enum AppLanguage: String, CaseIterable, Identifiable {
-    case system, zh, en
+    case system, en, zh
+    case zhHant = "zh-Hant"
+    case ja, ko, de, fr, es
     var id: String { rawValue }
+    /// Each language under its own name, as in System Settings.
     var label: String {
         switch self {
         case .system: return L("跟随系统", "System")
-        case .zh: return "简体中文"
         case .en: return "English"
+        case .zh: return "简体中文"
+        case .zhHant: return "繁體中文"
+        case .ja: return "日本語"
+        case .ko: return "한국어"
+        case .de: return "Deutsch"
+        case .fr: return "Français"
+        case .es: return "Español"
         }
+    }
+
+    /// The first of the Mac's preferred languages that Rill has, else English.
+    static func fromSystem(_ preferred: [String] = Locale.preferredLanguages) -> AppLanguage {
+        for id in preferred {
+            let l = id.lowercased()
+            if l.hasPrefix("zh") {
+                return l.contains("hant") || l.hasSuffix("-tw") || l.hasSuffix("-hk") || l.hasSuffix("-mo") ? .zhHant : .zh
+            }
+            for lang in [AppLanguage.en, .ja, .ko, .de, .fr, .es] where l.hasPrefix(lang.rawValue) { return lang }
+        }
+        return .en
     }
 }
 
@@ -46,7 +67,7 @@ final class AppSettings: ObservableObject {
     @Published var language: AppLanguage {
         didSet {
             UserDefaults.standard.set(language.rawValue, forKey: "language")
-            Self.chinese = Self.isChinese(language)
+            Self.resolved = Self.resolve(language)
         }
     }
     @Published var showsPower: Bool {
@@ -78,20 +99,18 @@ final class AppSettings: ObservableObject {
 
     /// `L()` runs for every string in every view body, so the answer is kept
     /// here rather than read from UserDefaults each time.
-    nonisolated(unsafe) private static var chinese = isChinese(stored)
+    nonisolated(unsafe) private static var resolved = resolve(stored)
 
-    nonisolated static var isChinese: Bool { chinese }
+    /// The language strings are shown in, with "System" resolved.
+    nonisolated static var current: AppLanguage { resolved }
+    nonisolated static var isChinese: Bool { resolved == .zh }
 
     nonisolated private static var stored: AppLanguage {
         AppLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .zh
     }
 
-    nonisolated private static func isChinese(_ language: AppLanguage) -> Bool {
-        switch language {
-        case .zh: return true
-        case .en: return false
-        case .system: return Locale.preferredLanguages.first?.hasPrefix("zh") ?? false
-        }
+    nonisolated private static func resolve(_ language: AppLanguage) -> AppLanguage {
+        language == .system ? AppLanguage.fromSystem() : language
     }
 
     func setLaunchAtLogin(_ on: Bool) {
@@ -109,12 +128,24 @@ final class AppSettings: ObservableObject {
     }
 }
 
-/// Chinese or English by the current setting. Two languages only: Rill is a
-/// personal tool, and inline pairs keep every string next to its use.
-func L(_ zh: String, _ en: String) -> String { AppSettings.isChinese ? zh : en }
+/// A string in the current language. Simplified Chinese and English sit
+/// inline next to their use; the other languages are looked up by the
+/// English text in `Translations` (Localization/Translations.json, generated
+/// by scripts/build-strings.py). With arguments, the chosen text is a
+/// printf format; `%@` takes the interpolated values as strings.
+func L(_ zh: String, _ en: String, _ args: CVarArg...) -> String {
+    let format: String
+    switch AppSettings.current {
+    case .zh: format = zh
+    case .en, .system: format = en
+    case let lang: format = Translations.lookup(en, language: lang.rawValue) ?? en
+    }
+    return args.isEmpty ? format : String(format: format, arguments: args)
+}
 
 func durationText(_ minutes: Int) -> String {
-    PowerFormat.duration(minutes: minutes, english: !AppSettings.isChinese)
+    let h = minutes / 60, m = minutes % 60
+    return h > 0 ? L("%1$@ 小时 %2$@ 分", "%1$@ h %2$@ min", "\(h)", "\(m)") : L("%@ 分", "%@ min", "\(m)")
 }
 
 /// One pane of standard grouped settings. Changes apply at once, as in

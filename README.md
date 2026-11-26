@@ -1,8 +1,32 @@
-# Rill
+<p align="center">
+  <img src="docs/images/icon-256.png" width="128" alt="Rill">
+</p>
+
+<h1 align="center">Rill</h1>
+
+<p align="center">
+  <a href="https://github.com/chengffei/rill/releases/latest"><b>Download</b></a> ·
+  <a href="https://chengffei.github.io/rill/">Website</a>
+</p>
+
+<p align="center">
+  <b>English</b> ·
+  <a href="README.zh-Hans.md">简体中文</a> ·
+  <a href="README.zh-Hant.md">繁體中文</a> ·
+  <a href="README.ja.md">日本語</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.fr.md">Français</a> ·
+  <a href="README.de.md">Deutsch</a> ·
+  <a href="README.es.md">Español</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/overview-en.png" width="760" alt="Rill overview">
+</p>
 
 A macOS menu bar app that shows where your Mac's power goes, live: what the charger delivers, what the Mac draws, what flows into or out of the battery, and which apps use the most energy.
 
-> **Status: early (0.8).** Requires macOS 26 or later on Apple silicon. Interface in English and 简体中文.
+> **Status: early (0.8).** Requires macOS 26 or later on Apple silicon. Interface in English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch and Español.
 
 ## Install
 
@@ -21,9 +45,9 @@ If the battery icon does not appear, your menu bar is full or a menu bar manager
 ## What it shows
 
 - **Menu bar**: battery level, charging state and, optionally, live watts (charger input when plugged in, battery discharge otherwise).
-- **Panel** (click the icon): an energy flow diagram from charger and battery to the Mac, a 10-minute power chart, charger and battery readings, and apps using significant energy.
+- **Panel** (click the icon): an energy flow diagram from charger and battery to the Mac; memory used, pressure and swap; apps using significant energy; when memory runs short, idle apps holding 1 GB or more; a 10-minute power chart; charger and battery readings.
 - **Window** (Open Dashboard): four pages.
-  - *Overview*: charge, energy flow, energy-hungry apps, today's usage.
+  - *Overview*: charge, energy flow, energy-hungry apps, memory with idle apps worth quitting, today's usage.
   - *Apps*: a sortable table of energy, CPU and memory per app or per process. Quit or force quit an app, end its busiest process, or spot apps that are not responding.
   - *History*: power, charge and temperature over 1 hour to 7 days.
   - *Battery & Charger*: health, cycle count, capacity, charger rating and negotiated voltage.

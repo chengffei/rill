@@ -95,15 +95,14 @@ enum Updates {
         let current = currentVersion
         switch result {
         case .success(let v) where Release.isNewer(v, than: current):
-            alert.messageText = L("Rill \(v) 已发布", "Rill \(v) is available")
-            alert.informativeText = L("你在用 \(current)。下载后替换「应用程序」里的 Rill 即可。",
-                                      "You have \(current). Download it and replace Rill in Applications.")
+            alert.messageText = L("Rill %@ 已发布", "Rill %@ is available", "\(v)")
+            alert.informativeText = L("你在用 %@。下载后替换「应用程序」里的 Rill 即可。", "You have %@. Download it and replace Rill in Applications.", "\(current)")
             alert.addButton(withTitle: L("前往下载", "Download"))
             alert.addButton(withTitle: L("以后再说", "Later"))
             if alert.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.open(Release.tagPage(v)) }
         case .success:
             alert.messageText = L("已是最新版本", "Rill is up to date")
-            alert.informativeText = L("你在用 \(current)。", "You have \(current).")
+            alert.informativeText = L("你在用 %@。", "You have %@.", "\(current)")
             alert.runModal()
         case .failure(let error):
             alert.alertStyle = .warning

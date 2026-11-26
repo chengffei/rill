@@ -1,0 +1,1418 @@
+{
+ " ": {
+  "de": " ",
+  "es": " ",
+  "fr": " ",
+  "ja": " ",
+  "ko": " ",
+  "zh-Hant": ""
+ },
+ "%1$@ h %2$@ min": {
+  "de": "%1$@ Std. %2$@ Min.",
+  "es": "%1$@ h %2$@ min",
+  "fr": "%1$@ h %2$@ min",
+  "ja": "%1$@ 時間 %2$@ 分",
+  "ko": "%1$@시간 %2$@분",
+  "zh-Hant": "%1$@ 小時 %2$@ 分"
+ },
+ "%1$@ of %2$@, %3$@ compressed": {
+  "de": "%1$@ von %2$@, %3$@ komprimiert",
+  "es": "%1$@ de %2$@, %3$@ comprimida",
+  "fr": "%1$@ sur %2$@, %3$@ compressée",
+  "ja": "%1$@ / %2$@、圧縮 %3$@",
+  "ko": "%2$@ 중 %1$@, 압축 %3$@",
+  "zh-Hant": "%1$@ / %2$@，壓縮 %3$@"
+ },
+ "%1$@: %2$@, unused for %3$@. Click to quit": {
+  "de": "%1$@: %2$@, seit %3$@ ungenutzt. Zum Beenden klicken",
+  "es": "%1$@: %2$@, sin usar desde hace %3$@. Haz clic para salir",
+  "fr": "%1$@ : %2$@, inutilisée depuis %3$@. Cliquez pour quitter",
+  "ja": "%1$@：%2$@、%3$@未使用。クリックして終了",
+  "ko": "%1$@: %2$@, %3$@ 동안 사용 안 함. 클릭하여 종료",
+  "zh-Hant": "%1$@：佔用 %2$@，已 %3$@未使用。按一下即可結束"
+ },
+ "%1$@: CPU %2$@, %3$@ over 20 s. Click to quit": {
+  "de": "%1$@: CPU %2$@, %3$@ über 20 s. Zum Beenden klicken",
+  "es": "%1$@: CPU %2$@, %3$@ en 20 s. Haz clic para salir",
+  "fr": "%1$@ : CPU %2$@, %3$@ sur 20 s. Cliquez pour quitter",
+  "ja": "%1$@：CPU %2$@、直近 20 秒で %3$@。クリックして終了",
+  "ko": "%1$@: CPU %2$@, 20초 평균 %3$@. 클릭하여 종료",
+  "zh-Hant": "%1$@：CPU %2$@，近 20 秒平均耗電 %3$@。按一下即可結束"
+ },
+ "%@ W charger": {
+  "de": "%@-W-Netzteil",
+  "es": "Cargador de %@ W",
+  "fr": "Chargeur %@ W",
+  "ja": "%@ W 充電器",
+  "ko": "%@ W 충전기",
+  "zh-Hant": "%@ W 充電器"
+ },
+ "%@ compressed, swap ": {
+  "de": "%@ komprimiert, Swap ",
+  "es": "%@ comprimida, intercambio ",
+  "fr": "%@ compressée, swap ",
+  "ja": "圧縮 %@、スワップ ",
+  "ko": "압축 %@, 스왑 ",
+  "zh-Hant": "壓縮 %@，置換 "
+ },
+ "%@ h": {
+  "de": "%@ Std.",
+  "es": "%@ h",
+  "fr": "%@ h",
+  "ja": "%@ 時間",
+  "ko": "%@시간",
+  "zh-Hant": "%@ 小時"
+ },
+ "%@ left": {
+  "de": "Noch %@",
+  "es": "Quedan %@",
+  "fr": "%@ restantes",
+  "ja": "残り %@",
+  "ko": "%@ 남음",
+  "zh-Hant": "剩餘 %@"
+ },
+ "%@ min": {
+  "de": "%@ Min.",
+  "es": "%@ min",
+  "fr": "%@ min",
+  "ja": "%@ 分",
+  "ko": "%@분",
+  "zh-Hant": "%@ 分鐘"
+ },
+ "(Not Responding)": {
+  "de": "(Reagiert nicht)",
+  "es": "(No responde)",
+  "fr": "(Ne répond pas)",
+  "ja": "（応答なし）",
+  "ko": "(응답 없음)",
+  "zh-Hant": "（沒有回應）"
+ },
+ ", ": {
+  "de": ", ",
+  "es": ", ",
+  "fr": ", ",
+  "ja": "、",
+  "ko": ", ",
+  "zh-Hant": "、"
+ },
+ ", %.1f °C": {
+  "de": ", %.1f °C",
+  "es": ", %.1f °C",
+  "fr": ", %.1f °C",
+  "ja": "、%.1f °C",
+  "ko": ", %.1f °C",
+  "zh-Hant": "，%.1f °C"
+ },
+ ", %@ cycles": {
+  "de": ", %@ Zyklen",
+  "es": ", %@ ciclos",
+  "fr": ", %@ cycles",
+  "ja": "、充放電 %@ 回",
+  "ko": ", 충전 %@회",
+  "zh-Hant": "，循環 %@ 次"
+ },
+ ", loss ": {
+  "de": ", Verlust ",
+  "es": ", pérdida ",
+  "fr": ", perte ",
+  "ja": "、損失 ",
+  "ko": ", 손실 ",
+  "zh-Hant": "，損耗 "
+ },
+ "1 Hour": {
+  "de": "1 Stunde",
+  "es": "1 hora",
+  "fr": "1 heure",
+  "ja": "1 時間",
+  "ko": "1시간",
+  "zh-Hant": "1 小時"
+ },
+ "24 Hours": {
+  "de": "24 Stunden",
+  "es": "24 horas",
+  "fr": "24 heures",
+  "ja": "24 時間",
+  "ko": "24시간",
+  "zh-Hant": "24 小時"
+ },
+ "5 min %.2f, 15 min %.2f, %d cores": {
+  "de": "5 Min. %.2f, 15 Min. %.2f, %d Kerne",
+  "es": "5 min %.2f, 15 min %.2f, %d núcleos",
+  "fr": "5 min %.2f, 15 min %.2f, %d cœurs",
+  "ja": "5 分 %.2f、15 分 %.2f、%d コア",
+  "ko": "5분 %.2f, 15분 %.2f, 코어 %d개",
+  "zh-Hant": "5 分鐘 %.2f，15 分鐘 %.2f，%d 核心"
+ },
+ "6 Hours": {
+  "de": "6 Stunden",
+  "es": "6 horas",
+  "fr": "6 heures",
+  "ja": "6 時間",
+  "ko": "6시간",
+  "zh-Hant": "6 小時"
+ },
+ "7 Days": {
+  "de": "7 Tage",
+  "es": "7 días",
+  "fr": "7 jours",
+  "ja": "7 日間",
+  "ko": "7일",
+  "zh-Hant": "7 天"
+ },
+ "About Rill": {
+  "de": "Über Rill",
+  "es": "Acerca de Rill",
+  "fr": "À propos de Rill",
+  "ja": "Rill について",
+  "ko": "Rill에 관하여",
+  "zh-Hant": "關於 Rill"
+ },
+ "Actual Input": {
+  "de": "Tatsächlicher Eingang",
+  "es": "Entrada real",
+  "fr": "Entrée réelle",
+  "ja": "実際の入力",
+  "ko": "실제 입력",
+  "zh-Hant": "實際輸入"
+ },
+ "App Not Responding": {
+  "de": "App reagiert nicht",
+  "es": "App que no responde",
+  "fr": "App ne répondant pas",
+  "ja": "応答のないアプリ",
+  "ko": "응답 없는 앱",
+  "zh-Hant": "有 App 沒有回應"
+ },
+ "App usage appears in a few seconds.": {
+  "de": "Die Nutzung pro App erscheint in wenigen Sekunden.",
+  "es": "El uso por app aparecerá en unos segundos.",
+  "fr": "L’utilisation par app s’affichera dans quelques secondes.",
+  "ja": "数秒後にアプリごとの使用量が表示されます。",
+  "ko": "몇 초 후에 앱별 사용량이 표시됩니다.",
+  "zh-Hant": "數秒後會顯示各 App 的用量。"
+ },
+ "Appearance": {
+  "de": "Erscheinungsbild",
+  "es": "Aspecto",
+  "fr": "Apparence",
+  "ja": "外観",
+  "ko": "화면 모드",
+  "zh-Hant": "外觀"
+ },
+ "Apps": {
+  "de": "Apps",
+  "es": "Apps",
+  "fr": "Apps",
+  "ja": "アプリ",
+  "ko": "앱",
+  "zh-Hant": "App"
+ },
+ "Apps Using Significant Energy": {
+  "de": "Apps mit hohem Energieverbrauch",
+  "es": "Apps que consumen mucha energía",
+  "fr": "Apps consommant beaucoup d’énergie",
+  "ja": "エネルギーを大量に使用中のアプリ",
+  "ko": "에너지를 많이 사용하는 앱",
+  "zh-Hant": "大量耗電的 App"
+ },
+ "Apps of 1 GB or more not in front for 30 minutes. Most of their memory is already compressed or swapped; quitting is what frees it. The panel suggests them too when pressure is elevated or swap exceeds a quarter of memory.": {
+  "de": "Apps ab 1 GB, die seit 30 Minuten nicht im Vordergrund waren. Ihr Speicher ist meist schon komprimiert oder ausgelagert; erst Beenden gibt ihn frei. Das Fenster schlägt sie auch vor, wenn der Speicherdruck erhöht ist oder Swap ein Viertel des Speichers übersteigt.",
+  "es": "Apps de 1 GB o más que llevan 30 minutos sin pasar a primer plano. Gran parte de su memoria ya está comprimida o en intercambio; solo cerrarlas la libera. El panel también las sugiere cuando la presión es elevada o el intercambio supera un cuarto de la memoria.",
+  "fr": "Apps de 1 Go ou plus restées en arrière-plan depuis 30 minutes. Leur mémoire est en grande partie déjà compressée ou en swap ; seul le fait de les quitter la libère. Le panneau les suggère aussi quand la pression est élevée ou que le swap dépasse un quart de la mémoire.",
+  "ja": "1 GB 以上で、30 分間前面に出ていないアプリです。メモリの大半はすでに圧縮またはスワップされており、終了すると解放されます。メモリプレッシャーが高いときやスワップがメモリの 4 分の 1 を超えたときは、パネルにも表示されます。",
+  "ko": "30분 동안 전면에 오지 않은 1 GB 이상의 앱입니다. 메모리 대부분은 이미 압축되었거나 스왑되었으며, 종료해야 해제됩니다. 메모리 압력이 높거나 스왑이 메모리의 4분의 1을 넘으면 패널에도 표시됩니다.",
+  "zh-Hant": "列出佔用 1 GB 以上、30 分鐘未切到前景的 App。其記憶體多半已被壓縮或置換到磁碟，結束後才會真正釋放。記憶體壓力偏高或置換超過記憶體四分之一時，面板也會提示。"
+ },
+ "Are you sure you want to end “%@”?": {
+  "de": "Möchtest du „%@“ wirklich beenden?",
+  "es": "¿Seguro que quieres finalizar “%@”?",
+  "fr": "Voulez-vous vraiment arrêter « %@ » ?",
+  "ja": "プロセス「%@」を終了してもよろしいですか？",
+  "ko": "‘%@’ 프로세스를 종료하겠습니까?",
+  "zh-Hant": "確定要結束程序「%@」嗎？"
+ },
+ "Are you sure you want to quit “%@”?": {
+  "de": "Möchtest du „%@“ wirklich beenden?",
+  "es": "¿Seguro que quieres salir de “%@”?",
+  "fr": "Voulez-vous vraiment quitter « %@ » ?",
+  "ja": "「%@」を終了してもよろしいですか？",
+  "ko": "‘%@’을(를) 종료하겠습니까?",
+  "zh-Hant": "確定要結束「%@」嗎？"
+ },
+ "Average Power": {
+  "de": "Mittlere Leistung",
+  "es": "Potencia media",
+  "fr": "Puissance moyenne",
+  "ja": "平均電力",
+  "ko": "평균 전력",
+  "zh-Hant": "平均功率"
+ },
+ "Battery": {
+  "de": "Batterie",
+  "es": "Batería",
+  "fr": "Batterie",
+  "ja": "バッテリー",
+  "ko": "배터리",
+  "zh-Hant": "電池"
+ },
+ "Battery %@%%": {
+  "de": "Batterie %@ %%",
+  "es": "Batería %@ %%",
+  "fr": "Batterie %@ %%",
+  "ja": "バッテリー %@%%",
+  "ko": "배터리 %@%%",
+  "zh-Hant": "電量 %@%%"
+ },
+ "Battery & Charger": {
+  "de": "Batterie & Netzteil",
+  "es": "Batería y cargador",
+  "fr": "Batterie et chargeur",
+  "ja": "バッテリーと充電器",
+  "ko": "배터리 및 충전기",
+  "zh-Hant": "電池與充電器"
+ },
+ "Battery Level": {
+  "de": "Ladezustand",
+  "es": "Nivel de carga",
+  "fr": "Niveau de charge",
+  "ja": "バッテリー残量",
+  "ko": "배터리 잔량",
+  "zh-Hant": "電量"
+ },
+ "Battery Temperature": {
+  "de": "Batterietemperatur",
+  "es": "Temperatura de la batería",
+  "fr": "Température de la batterie",
+  "ja": "バッテリー温度",
+  "ko": "배터리 온도",
+  "zh-Hant": "電池溫度"
+ },
+ "Battery assisting the charger": {
+  "de": "Batterie unterstützt das Netzteil",
+  "es": "La batería asiste al cargador",
+  "fr": "La batterie assiste le chargeur",
+  "ja": "バッテリーが充電器を補助中",
+  "ko": "배터리가 충전기를 보조 중",
+  "zh-Hant": "充電器不足，由電池補充"
+ },
+ "Bring All to Front": {
+  "de": "Alle nach vorne bringen",
+  "es": "Traer todo al frente",
+  "fr": "Tout ramener au premier plan",
+  "ja": "すべてを手前に移動",
+  "ko": "모두 앞으로 가져오기",
+  "zh-Hant": "將此程式所有視窗移至前面"
+ },
+ "Busiest Process": {
+  "de": "Aktivster Prozess",
+  "es": "Proceso más activo",
+  "fr": "Processus le plus actif",
+  "ja": "最も負荷の高いプロセス",
+  "ko": "가장 바쁜 프로세스",
+  "zh-Hant": "最忙碌的程序"
+ },
+ "CPU": {
+  "de": "CPU",
+  "es": "CPU",
+  "fr": "CPU",
+  "ja": "CPU",
+  "ko": "CPU",
+  "zh-Hant": "CPU"
+ },
+ "CPU energy by app; 1 W or more over 20 seconds counts.": {
+  "de": "CPU-Energie pro App; gezählt wird ab 1 W im Mittel über 20 Sekunden.",
+  "es": "Energía de CPU por app; cuenta a partir de 1 W de media en 20 segundos.",
+  "fr": "Énergie CPU par app ; compte à partir de 1 W en moyenne sur 20 secondes.",
+  "ja": "アプリ別の CPU 消費電力。直近 20 秒の平均が 1 W 以上のものを表示します。",
+  "ko": "앱별 CPU 에너지이며, 최근 20초 평균 1 W 이상만 포함됩니다.",
+  "zh-Hant": "依 App 彙總 CPU 耗電，近 20 秒平均 1 W 以上才列入。"
+ },
+ "Cancel": {
+  "de": "Abbrechen",
+  "es": "Cancelar",
+  "fr": "Annuler",
+  "ja": "キャンセル",
+  "ko": "취소",
+  "zh-Hant": "取消"
+ },
+ "Capacity": {
+  "de": "Kapazität",
+  "es": "Capacidad",
+  "fr": "Capacité",
+  "ja": "容量",
+  "ko": "용량",
+  "zh-Hant": "容量"
+ },
+ "Charge": {
+  "de": "Ladung",
+  "es": "Carga",
+  "fr": "Charge",
+  "ja": "残量",
+  "ko": "충전량",
+  "zh-Hant": "電量"
+ },
+ "Charger": {
+  "de": "Netzteil",
+  "es": "Cargador",
+  "fr": "Chargeur",
+  "ja": "充電器",
+  "ko": "충전기",
+  "zh-Hant": "充電器"
+ },
+ "Charging": {
+  "de": "Wird geladen",
+  "es": "Cargando",
+  "fr": "En charge",
+  "ja": "充電中",
+  "ko": "충전 중",
+  "zh-Hant": "充電中"
+ },
+ "Charging Paused": {
+  "de": "Laden pausiert",
+  "es": "Carga en pausa",
+  "fr": "Charge suspendue",
+  "ja": "充電一時停止",
+  "ko": "충전 일시 정지됨",
+  "zh-Hant": "已暫停充電"
+ },
+ "Check for Updates…": {
+  "de": "Nach Updates suchen …",
+  "es": "Buscar actualizaciones…",
+  "fr": "Rechercher des mises à jour…",
+  "ja": "アップデートを確認…",
+  "ko": "업데이트 확인…",
+  "zh-Hant": "檢查更新項目⋯"
+ },
+ "Close Window": {
+  "de": "Fenster schließen",
+  "es": "Cerrar ventana",
+  "fr": "Fermer la fenêtre",
+  "ja": "ウインドウを閉じる",
+  "ko": "윈도우 닫기",
+  "zh-Hant": "關閉視窗"
+ },
+ "Connected": {
+  "de": "Verbunden",
+  "es": "Conectado",
+  "fr": "Connecté",
+  "ja": "接続済み",
+  "ko": "연결됨",
+  "zh-Hant": "已連接"
+ },
+ "Conversion Loss": {
+  "de": "Wandlungsverlust",
+  "es": "Pérdida de conversión",
+  "fr": "Perte de conversion",
+  "ja": "変換損失",
+  "ko": "변환 손실",
+  "zh-Hant": "轉換損耗"
+ },
+ "Couldn't check for updates": {
+  "de": "Suche nach Updates fehlgeschlagen",
+  "es": "No se pudo buscar actualizaciones",
+  "fr": "Impossible de rechercher les mises à jour",
+  "ja": "アップデートを確認できませんでした",
+  "ko": "업데이트를 확인할 수 없음",
+  "zh-Hant": "無法檢查更新項目"
+ },
+ "Couldn't end “%@”": {
+  "de": "„%@“ konnte nicht beendet werden",
+  "es": "No se pudo finalizar “%@”",
+  "fr": "Impossible d’arrêter « %@ »",
+  "ja": "「%@」を終了できませんでした",
+  "ko": "‘%@’을(를) 종료할 수 없음",
+  "zh-Hant": "無法結束「%@」"
+ },
+ "Counts only time the Mac was awake and recording": {
+  "de": "Zählt nur Zeit, in der der Mac wach war und aufgezeichnet hat",
+  "es": "Solo cuenta el tiempo en que el Mac estaba activo y registrando",
+  "fr": "Compte uniquement le temps où le Mac était éveillé et enregistrait",
+  "ja": "Mac がスリープしておらず記録中の時間のみ",
+  "ko": "Mac이 깨어 있고 기록 중인 시간만 계산",
+  "zh-Hant": "只計算 Mac 處於喚醒且有記錄的時間"
+ },
+ "Critical": {
+  "de": "Kritisch",
+  "es": "Crítica",
+  "fr": "Critique",
+  "ja": "危険",
+  "ko": "심각",
+  "zh-Hant": "嚴重"
+ },
+ "Cycle Count": {
+  "de": "Ladezyklen",
+  "es": "Recuento de ciclos",
+  "fr": "Nombre de cycles",
+  "ja": "充放電回数",
+  "ko": "충전 횟수",
+  "zh-Hant": "循環次數"
+ },
+ "Dark": {
+  "de": "Dunkel",
+  "es": "Oscuro",
+  "fr": "Sombre",
+  "ja": "ダーク",
+  "ko": "다크",
+  "zh-Hant": "深色"
+ },
+ "Download": {
+  "de": "Laden",
+  "es": "Descargar",
+  "fr": "Télécharger",
+  "ja": "ダウンロード",
+  "ko": "다운로드",
+  "zh-Hant": "前往下載"
+ },
+ "Elevated": {
+  "de": "Erhöht",
+  "es": "Elevada",
+  "fr": "Élevée",
+  "ja": "高め",
+  "ko": "높음",
+  "zh-Hant": "偏高"
+ },
+ "End": {
+  "de": "Beenden",
+  "es": "Finalizar",
+  "fr": "Arrêter",
+  "ja": "終了",
+  "ko": "종료",
+  "zh-Hant": "結束"
+ },
+ "End Busiest Process…": {
+  "de": "Aktivsten Prozess beenden …",
+  "es": "Finalizar el proceso más activo…",
+  "fr": "Arrêter le processus le plus actif…",
+  "ja": "最も負荷の高いプロセスを終了…",
+  "ko": "가장 바쁜 프로세스 종료…",
+  "zh-Hant": "結束最忙碌的程序⋯"
+ },
+ "End asks the process to exit; Force End stops it at once and loses unsaved work.": {
+  "de": "„Beenden“ bittet den Prozess, sich zu beenden; „Sofort stoppen“ stoppt ihn sofort, nicht Gesichertes geht verloren.",
+  "es": "“Finalizar” pide al proceso que se cierre; “Forzar fin” lo detiene al instante y se pierde el trabajo no guardado.",
+  "fr": "« Arrêter » demande au processus de se fermer ; « Forcer l’arrêt » le stoppe immédiatement et perd le travail non enregistré.",
+  "ja": "「終了」はプロセスに終了を求めます。「強制終了」はすぐに停止し、保存されていない作業は失われます。",
+  "ko": "종료는 프로세스에 종료를 요청하고, 강제 종료는 즉시 중단하며 저장되지 않은 작업이 사라집니다.",
+  "zh-Hant": "「結束」會請程序自行結束；「強制結束」會立即停止，未儲存的內容將會遺失。"
+ },
+ "End “%@”…": {
+  "de": "„%@“ beenden …",
+  "es": "Finalizar “%@”…",
+  "fr": "Arrêter « %@ »…",
+  "ja": "「%@」を終了…",
+  "ko": "‘%@’ 종료…",
+  "zh-Hant": "結束「%@」⋯"
+ },
+ "Energy": {
+  "de": "Energie",
+  "es": "Energía",
+  "fr": "Énergie",
+  "ja": "エネルギー",
+  "ko": "에너지",
+  "zh-Hant": "耗電"
+ },
+ "Energy Used by Mac": {
+  "de": "Energieverbrauch des Mac",
+  "es": "Energía consumida por el Mac",
+  "fr": "Énergie consommée par le Mac",
+  "ja": "Mac の使用電力量",
+  "ko": "Mac 에너지 사용량",
+  "zh-Hant": "Mac 用電量"
+ },
+ "Enter Full Screen": {
+  "de": "Vollbildmodus aktivieren",
+  "es": "Entrar en pantalla completa",
+  "fr": "Passer en mode plein écran",
+  "ja": "フルスクリーンにする",
+  "ko": "전체 화면 시작",
+  "zh-Hant": "進入全螢幕"
+ },
+ "File": {
+  "de": "Ablage",
+  "es": "Archivo",
+  "fr": "Fichier",
+  "ja": "ファイル",
+  "ko": "파일",
+  "zh-Hant": "檔案"
+ },
+ "Force End": {
+  "de": "Sofort stoppen",
+  "es": "Forzar fin",
+  "fr": "Forcer l’arrêt",
+  "ja": "強制終了",
+  "ko": "강제 종료",
+  "zh-Hant": "強制結束"
+ },
+ "Force Quit": {
+  "de": "Sofort beenden",
+  "es": "Forzar salida",
+  "fr": "Forcer à quitter",
+  "ja": "強制終了",
+  "ko": "강제 종료",
+  "zh-Hant": "強制結束"
+ },
+ "Force Quit closes the app at once and loses unsaved changes.": {
+  "de": "„Sofort beenden“ schließt die App sofort, nicht gesicherte Änderungen gehen verloren.",
+  "es": "“Forzar salida” cierra la app al instante y se pierden los cambios no guardados.",
+  "fr": "« Forcer à quitter » ferme l’app immédiatement et perd les modifications non enregistrées.",
+  "ja": "「強制終了」はアプリをすぐに閉じ、保存されていない変更は失われます。",
+  "ko": "강제 종료하면 앱이 즉시 닫히며 저장되지 않은 변경 사항이 사라집니다.",
+  "zh-Hant": "「強制結束」會立即關閉 App，未儲存的變更將會遺失。"
+ },
+ "From Battery": {
+  "de": "Aus Batterie",
+  "es": "De la batería",
+  "fr": "Depuis la batterie",
+  "ja": "バッテリーから",
+  "ko": "배터리에서",
+  "zh-Hant": "來自電池"
+ },
+ "From Charger": {
+  "de": "Aus Netzteil",
+  "es": "Del cargador",
+  "fr": "Depuis le chargeur",
+  "ja": "充電器から",
+  "ko": "충전기에서",
+  "zh-Hant": "來自充電器"
+ },
+ "Full in %@": {
+  "de": "Voll in %@",
+  "es": "Llena en %@",
+  "fr": "Chargée dans %@",
+  "ja": "あと%@でフル充電",
+  "ko": "%@ 후 완충",
+  "zh-Hant": "%@後充滿"
+ },
+ "Fully Charged": {
+  "de": "Vollständig geladen",
+  "es": "Carga completa",
+  "fr": "Chargée",
+  "ja": "フル充電済み",
+  "ko": "완충됨",
+  "zh-Hant": "已充飽"
+ },
+ "General": {
+  "de": "Allgemein",
+  "es": "General",
+  "fr": "Général",
+  "ja": "一般",
+  "ko": "일반",
+  "zh-Hant": "一般"
+ },
+ "Health": {
+  "de": "Zustand",
+  "es": "Salud",
+  "fr": "État",
+  "ja": "状態",
+  "ko": "성능 상태",
+  "zh-Hant": "健康度"
+ },
+ "Help": {
+  "de": "Hilfe",
+  "es": "Ayuda",
+  "fr": "Aide",
+  "ja": "ヘルプ",
+  "ko": "도움말",
+  "zh-Hant": "輔助說明"
+ },
+ "Hide Others": {
+  "de": "Andere ausblenden",
+  "es": "Ocultar otros",
+  "fr": "Masquer les autres",
+  "ja": "ほかを非表示",
+  "ko": "기타 가리기",
+  "zh-Hant": "隱藏其他"
+ },
+ "Hide Rill": {
+  "de": "Rill ausblenden",
+  "es": "Ocultar Rill",
+  "fr": "Masquer Rill",
+  "ja": "Rill を非表示",
+  "ko": "Rill 가리기",
+  "zh-Hant": "隱藏 Rill"
+ },
+ "History": {
+  "de": "Verlauf",
+  "es": "Historial",
+  "fr": "Historique",
+  "ja": "履歴",
+  "ko": "기록",
+  "zh-Hant": "歷史記錄"
+ },
+ "Idle": {
+  "de": "Inaktiv",
+  "es": "Inactivas",
+  "fr": "Inactives",
+  "ja": "待機中",
+  "ko": "유휴",
+  "zh-Hant": "閒置"
+ },
+ "In ": {
+  "de": "Ein ",
+  "es": "Entrada ",
+  "fr": "Entrée ",
+  "ja": "充電 ",
+  "ko": "충전 ",
+  "zh-Hant": "充入 "
+ },
+ "Input": {
+  "de": "Eingang",
+  "es": "Entrada",
+  "fr": "Entrée",
+  "ja": "入力",
+  "ko": "입력",
+  "zh-Hant": "輸入"
+ },
+ "Input ": {
+  "de": "Eingang ",
+  "es": "Entrada ",
+  "fr": "Entrée ",
+  "ja": "入力 ",
+  "ko": "입력 ",
+  "zh-Hant": "輸入 "
+ },
+ "Into Battery": {
+  "de": "In Batterie",
+  "es": "A la batería",
+  "fr": "Vers la batterie",
+  "ja": "バッテリーへ",
+  "ko": "배터리로",
+  "zh-Hant": "充入電池"
+ },
+ "Language": {
+  "de": "Sprache",
+  "es": "Idioma",
+  "fr": "Langue",
+  "ja": "言語",
+  "ko": "언어",
+  "zh-Hant": "語言"
+ },
+ "Last %@": {
+  "de": "Letzte %@",
+  "es": "Últimas %@",
+  "fr": "Dernières %@",
+  "ja": "直近 %@",
+  "ko": "최근 %@",
+  "zh-Hant": "%@合計"
+ },
+ "Last 10 Minutes": {
+  "de": "Letzte 10 Minuten",
+  "es": "Últimos 10 minutos",
+  "fr": "10 dernières minutes",
+  "ja": "直近 10 分間",
+  "ko": "최근 10분",
+  "zh-Hant": "最近 10 分鐘"
+ },
+ "Later": {
+  "de": "Später",
+  "es": "Más tarde",
+  "fr": "Plus tard",
+  "ja": "後で",
+  "ko": "나중에",
+  "zh-Hant": "稍後"
+ },
+ "Light": {
+  "de": "Hell",
+  "es": "Claro",
+  "fr": "Clair",
+  "ja": "ライト",
+  "ko": "라이트",
+  "zh-Hant": "淺色"
+ },
+ "Load": {
+  "de": "Last",
+  "es": "Carga",
+  "fr": "Charge",
+  "ja": "負荷",
+  "ko": "부하",
+  "zh-Hant": "負載"
+ },
+ "Mac": {
+  "de": "Mac",
+  "es": "Mac",
+  "fr": "Mac",
+  "ja": "Mac",
+  "ko": "Mac",
+  "zh-Hant": "Mac"
+ },
+ "Mac ": {
+  "de": "Mac ",
+  "es": "Mac ",
+  "fr": "Mac ",
+  "ja": "Mac ",
+  "ko": "Mac ",
+  "zh-Hant": "Mac "
+ },
+ "Mac average %1$@, peak %2$@": {
+  "de": "Mac Mittel %1$@, Spitze %2$@",
+  "es": "Mac media %1$@, pico %2$@",
+  "fr": "Mac moyenne %1$@, pic %2$@",
+  "ja": "Mac 平均 %1$@、最大 %2$@",
+  "ko": "Mac 평균 %1$@, 최대 %2$@",
+  "zh-Hant": "Mac 平均 %1$@，峰值 %2$@"
+ },
+ "Measuring": {
+  "de": "Wird gemessen",
+  "es": "Midiendo",
+  "fr": "Mesure en cours",
+  "ja": "計測中",
+  "ko": "측정 중",
+  "zh-Hant": "正在統計"
+ },
+ "Measuring, results in a few seconds": {
+  "de": "Wird gemessen, Ergebnis in wenigen Sekunden",
+  "es": "Midiendo, resultados en unos segundos",
+  "fr": "Mesure en cours, résultats dans quelques secondes",
+  "ja": "計測中。数秒後に表示されます",
+  "ko": "측정 중이며 몇 초 후에 표시됨",
+  "zh-Hant": "正在統計，數秒後顯示"
+ },
+ "Memory": {
+  "de": "Speicher",
+  "es": "Memoria",
+  "fr": "Mémoire",
+  "ja": "メモリ",
+  "ko": "메모리",
+  "zh-Hant": "記憶體"
+ },
+ "Memory ": {
+  "de": "Speicher ",
+  "es": "Memoria ",
+  "fr": "Mémoire ",
+  "ja": "メモリ ",
+  "ko": "메모리 ",
+  "zh-Hant": "記憶體 "
+ },
+ "Memory Pressure": {
+  "de": "Speicherdruck",
+  "es": "Presión de memoria",
+  "fr": "Pression mémoire",
+  "ja": "メモリプレッシャー",
+  "ko": "메모리 압력",
+  "zh-Hant": "記憶體壓力"
+ },
+ "Menu Bar": {
+  "de": "Menüleiste",
+  "es": "Barra de menús",
+  "fr": "Barre des menus",
+  "ja": "メニューバー",
+  "ko": "메뉴 막대",
+  "zh-Hant": "選單列"
+ },
+ "Minimize": {
+  "de": "Im Dock ablegen",
+  "es": "Minimizar",
+  "fr": "Placer dans le Dock",
+  "ja": "しまう",
+  "ko": "최소화",
+  "zh-Hant": "縮到最小"
+ },
+ "Model": {
+  "de": "Modell",
+  "es": "Modelo",
+  "fr": "Modèle",
+  "ja": "モデル",
+  "ko": "모델",
+  "zh-Hant": "型號"
+ },
+ "Name": {
+  "de": "Name",
+  "es": "Nombre",
+  "fr": "Nom",
+  "ja": "名前",
+  "ko": "이름",
+  "zh-Hant": "名稱"
+ },
+ "Negotiated": {
+  "de": "Ausgehandelt",
+  "es": "Negociada",
+  "fr": "Négociée",
+  "ja": "ネゴシエーション",
+  "ko": "협상",
+  "zh-Hant": "協商"
+ },
+ "No Battery Found": {
+  "de": "Keine Batterie gefunden",
+  "es": "No se ha encontrado batería",
+  "fr": "Aucune batterie détectée",
+  "ja": "バッテリーが見つかりません",
+  "ko": "배터리를 찾을 수 없음",
+  "zh-Hant": "找不到電池"
+ },
+ "No apps using significant energy": {
+  "de": "Keine Apps mit hohem Energieverbrauch",
+  "es": "Ninguna app consume mucha energía",
+  "fr": "Aucune app ne consomme beaucoup d’énergie",
+  "ja": "エネルギーを大量に使用しているアプリはありません",
+  "ko": "에너지를 많이 사용하는 앱 없음",
+  "zh-Hant": "沒有 App 正在大量耗電"
+ },
+ "No battery found on this Mac": {
+  "de": "Keine Batterie in diesem Mac gefunden",
+  "es": "No se ha encontrado batería en este Mac",
+  "fr": "Aucune batterie détectée sur ce Mac",
+  "ja": "この Mac にはバッテリーが見つかりません",
+  "ko": "이 Mac에서 배터리를 찾을 수 없음",
+  "zh-Hant": "這台 Mac 找不到電池"
+ },
+ "No charger connected": {
+  "de": "Kein Netzteil angeschlossen",
+  "es": "Ningún cargador conectado",
+  "fr": "Aucun chargeur branché",
+  "ja": "充電器が接続されていません",
+  "ko": "충전기가 연결되지 않음",
+  "zh-Hant": "未接上充電器"
+ },
+ "No history yet": {
+  "de": "Noch kein Verlauf",
+  "es": "Aún no hay historial",
+  "fr": "Pas encore d’historique",
+  "ja": "まだ履歴がありません",
+  "ko": "아직 기록 없음",
+  "zh-Hant": "尚無記錄"
+ },
+ "No history yet. Rill saves a reading every minute while it runs.": {
+  "de": "Noch kein Verlauf. Rill speichert jede Minute einen Messwert, solange es läuft.",
+  "es": "Aún no hay historial. Rill guarda una lectura cada minuto mientras está abierto.",
+  "fr": "Pas encore d’historique. Rill enregistre une mesure par minute tant qu’il est ouvert.",
+  "ja": "まだ履歴がありません。Rill は実行中に 1 分ごとに記録します。",
+  "ko": "아직 기록이 없습니다. Rill은 실행 중 1분마다 기록을 저장합니다.",
+  "zh-Hant": "尚無記錄。Rill 執行時每分鐘儲存一筆。"
+ },
+ "No idle apps holding much memory": {
+  "de": "Keine inaktiven Apps mit viel Speicher",
+  "es": "Ninguna app inactiva ocupa mucha memoria",
+  "fr": "Aucune app inactive n’occupe beaucoup de mémoire",
+  "ja": "メモリを多く使っている待機中のアプリはありません",
+  "ko": "메모리를 많이 차지하는 유휴 앱 없음",
+  "zh-Hant": "沒有閒置且佔用大量記憶體的 App"
+ },
+ "Normal": {
+  "de": "Normal",
+  "es": "Normal",
+  "fr": "Normale",
+  "ja": "正常",
+  "ko": "보통",
+  "zh-Hant": "正常"
+ },
+ "Not Responding": {
+  "de": "Reagiert nicht",
+  "es": "No responde",
+  "fr": "Ne répond pas",
+  "ja": "応答なし",
+  "ko": "응답 없음",
+  "zh-Hant": "沒有回應"
+ },
+ "Not reported": {
+  "de": "Nicht angegeben",
+  "es": "No informado",
+  "fr": "Non communiqué",
+  "ja": "報告なし",
+  "ko": "보고되지 않음",
+  "zh-Hant": "未提供"
+ },
+ "Not responding": {
+  "de": "Reagiert nicht",
+  "es": "No responde",
+  "fr": "Ne répond pas",
+  "ja": "応答なし",
+  "ko": "응답 없음",
+  "zh-Hant": "沒有回應"
+ },
+ "OK": {
+  "de": "OK",
+  "es": "OK",
+  "fr": "OK",
+  "ja": "OK",
+  "ko": "확인",
+  "zh-Hant": "好"
+ },
+ "On Battery": {
+  "de": "Batteriebetrieb",
+  "es": "Con batería",
+  "fr": "Sur batterie",
+  "ja": "バッテリー駆動",
+  "ko": "배터리 사용 중",
+  "zh-Hant": "使用電池"
+ },
+ "Open Activity Monitor": {
+  "de": "Aktivitätsanzeige öffnen",
+  "es": "Abrir Monitor de Actividad",
+  "fr": "Ouvrir le Moniteur d’activité",
+  "ja": "アクティビティモニタを開く",
+  "ko": "활성 상태 보기 열기",
+  "zh-Hant": "打開活動監視器"
+ },
+ "Open Dashboard": {
+  "de": "Dashboard öffnen",
+  "es": "Abrir panel",
+  "fr": "Ouvrir le tableau de bord",
+  "ja": "ダッシュボードを開く",
+  "ko": "대시보드 열기",
+  "zh-Hant": "打開儀表板"
+ },
+ "Open Releases Page": {
+  "de": "Release-Seite öffnen",
+  "es": "Abrir página de versiones",
+  "fr": "Ouvrir la page des versions",
+  "ja": "リリースページを開く",
+  "ko": "릴리스 페이지 열기",
+  "zh-Hant": "打開發佈頁面"
+ },
+ "Open at Login": {
+  "de": "Beim Anmelden öffnen",
+  "es": "Abrir al iniciar sesión",
+  "fr": "Ouvrir à la connexion",
+  "ja": "ログイン時に開く",
+  "ko": "로그인 시 열기",
+  "zh-Hant": "登入時打開"
+ },
+ "Out ": {
+  "de": "Aus ",
+  "es": "Salida ",
+  "fr": "Sortie ",
+  "ja": "放電 ",
+  "ko": "방전 ",
+  "zh-Hant": "放出 "
+ },
+ "Overview": {
+  "de": "Übersicht",
+  "es": "Resumen",
+  "fr": "Aperçu",
+  "ja": "概要",
+  "ko": "개요",
+  "zh-Hant": "概覽"
+ },
+ "Part of macOS or Rill itself, can't be quit here": {
+  "de": "Teil von macOS oder Rill selbst, kann hier nicht beendet werden",
+  "es": "Forma parte de macOS o de Rill, no se puede cerrar aquí",
+  "fr": "Fait partie de macOS ou de Rill, impossible de quitter ici",
+  "ja": "macOS または Rill 自身の一部のため、ここでは終了できません",
+  "ko": "macOS 또는 Rill 자체의 일부이므로 여기에서 종료할 수 없음",
+  "zh-Hant": "macOS 系統元件或 Rill 本身，無法在此結束"
+ },
+ "Peak Power (1-min avg)": {
+  "de": "Spitzenleistung (1-Min.-Mittel)",
+  "es": "Potencia máx. (media 1 min)",
+  "fr": "Puissance max. (moy. 1 min)",
+  "ja": "最大電力（1 分平均）",
+  "ko": "최대 전력(1분 평균)",
+  "zh-Hant": "最高功率（1 分鐘平均）"
+ },
+ "Power": {
+  "de": "Leistung",
+  "es": "Potencia",
+  "fr": "Puissance",
+  "ja": "電力",
+  "ko": "전력",
+  "zh-Hant": "功率"
+ },
+ "Pressure": {
+  "de": "Druck",
+  "es": "Presión",
+  "fr": "Pression",
+  "ja": "プレッシャー",
+  "ko": "압력",
+  "zh-Hant": "壓力"
+ },
+ "Process": {
+  "de": "Prozess",
+  "es": "Proceso",
+  "fr": "Processus",
+  "ja": "プロセス",
+  "ko": "프로세스",
+  "zh-Hant": "程序"
+ },
+ "Quit": {
+  "de": "Beenden",
+  "es": "Salir",
+  "fr": "Quitter",
+  "ja": "終了",
+  "ko": "종료",
+  "zh-Hant": "結束"
+ },
+ "Quit %@…": {
+  "de": "%@ beenden …",
+  "es": "Salir de %@…",
+  "fr": "Quitter %@…",
+  "ja": "%@を終了…",
+  "ko": "%@ 종료…",
+  "zh-Hant": "結束 %@⋯"
+ },
+ "Quit App": {
+  "de": "App beenden",
+  "es": "Salir de la app",
+  "fr": "Quitter l’app",
+  "ja": "アプリを終了",
+  "ko": "앱 종료",
+  "zh-Hant": "結束 App"
+ },
+ "Quit Rill": {
+  "de": "Rill beenden",
+  "es": "Salir de Rill",
+  "fr": "Quitter Rill",
+  "ja": "Rill を終了",
+  "ko": "Rill 종료",
+  "zh-Hant": "結束 Rill"
+ },
+ "Quit Selected App…": {
+  "de": "Ausgewählte App beenden …",
+  "es": "Salir de la app seleccionada…",
+  "fr": "Quitter l’app sélectionnée…",
+  "ja": "選択したアプリを終了…",
+  "ko": "선택한 앱 종료…",
+  "zh-Hant": "結束所選 App⋯"
+ },
+ "Quit the selected app": {
+  "de": "Ausgewählte App beenden",
+  "es": "Salir de la app seleccionada",
+  "fr": "Quitter l’app sélectionnée",
+  "ja": "選択したアプリを終了",
+  "ko": "선택한 앱 종료",
+  "zh-Hant": "結束所選 App"
+ },
+ "Quit…": {
+  "de": "Beenden …",
+  "es": "Salir…",
+  "fr": "Quitter…",
+  "ja": "終了…",
+  "ko": "종료…",
+  "zh-Hant": "結束⋯"
+ },
+ "Rated Power": {
+  "de": "Nennleistung",
+  "es": "Potencia nominal",
+  "fr": "Puissance nominale",
+  "ja": "定格電力",
+  "ko": "정격 전력",
+  "zh-Hant": "額定功率"
+ },
+ "Report an Issue…": {
+  "de": "Problem melden …",
+  "es": "Informar de un problema…",
+  "fr": "Signaler un problème…",
+  "ja": "問題を報告…",
+  "ko": "문제 보고…",
+  "zh-Hant": "回報問題⋯"
+ },
+ "Rill %@ is available": {
+  "de": "Rill %@ ist verfügbar",
+  "es": "Rill %@ está disponible",
+  "fr": "Rill %@ est disponible",
+  "ja": "Rill %@ が利用可能です",
+  "ko": "Rill %@ 사용 가능",
+  "zh-Hant": "Rill %@ 已推出"
+ },
+ "Rill Settings": {
+  "de": "Rill-Einstellungen",
+  "es": "Ajustes de Rill",
+  "fr": "Réglages de Rill",
+  "ja": "Rill 設定",
+  "ko": "Rill 설정",
+  "zh-Hant": "Rill 設定"
+ },
+ "Rill is up to date": {
+  "de": "Rill ist aktuell",
+  "es": "Rill está actualizado",
+  "fr": "Rill est à jour",
+  "ja": "Rill は最新です",
+  "ko": "Rill이 최신 상태임",
+  "zh-Hant": "Rill 已是最新版本"
+ },
+ "Rill needs a Mac with a battery.": {
+  "de": "Rill benötigt einen Mac mit Batterie.",
+  "es": "Rill necesita un Mac con batería.",
+  "fr": "Rill nécessite un Mac avec batterie.",
+  "ja": "Rill にはバッテリー搭載の Mac が必要です。",
+  "ko": "Rill은 배터리가 있는 Mac이 필요합니다.",
+  "zh-Hant": "Rill 需要配備電池的 Mac。"
+ },
+ "Rill on GitHub": {
+  "de": "Rill auf GitHub",
+  "es": "Rill en GitHub",
+  "fr": "Rill sur GitHub",
+  "ja": "GitHub の Rill",
+  "ko": "GitHub의 Rill",
+  "zh-Hant": "Rill 的 GitHub 頁面"
+ },
+ "Same as Activity Monitor's Memory Used: app, wired and compressed memory.": {
+  "de": "Wie „Benutzter Speicher“ in der Aktivitätsanzeige: App-, gesicherter und komprimierter Speicher.",
+  "es": "Igual que “Memoria usada” en Monitor de Actividad: memoria de apps, residente y comprimida.",
+  "fr": "Identique à « Mémoire utilisée » du Moniteur d’activité : mémoire des apps, câblée et compressée.",
+  "ja": "アクティビティモニタの「使用済みメモリ」と同じです：アプリメモリ、確保されているメモリ、圧縮メモリの合計。",
+  "ko": "활성 상태 보기의 ‘사용된 메모리’와 동일: 앱, 와이어드 및 압축된 메모리의 합계입니다.",
+  "zh-Hant": "與活動監視器的「已使用記憶體」相同：App 記憶體、固定記憶體與已壓縮記憶體的總和。"
+ },
+ "Search apps or processes": {
+  "de": "Apps oder Prozesse suchen",
+  "es": "Buscar apps o procesos",
+  "fr": "Rechercher des apps ou processus",
+  "ja": "アプリまたはプロセスを検索",
+  "ko": "앱 또는 프로세스 검색",
+  "zh-Hant": "搜尋 App 或程序"
+ },
+ "Settings…": {
+  "de": "Einstellungen …",
+  "es": "Ajustes…",
+  "fr": "Réglages…",
+  "ja": "設定…",
+  "ko": "설정…",
+  "zh-Hant": "設定⋯"
+ },
+ "Share of all cores; 100%% is every core busy. Now about %@ cores' worth. The table's CPU column counts one core as 100%%. The line covers the last 3 minutes.": {
+  "de": "Anteil aller Kerne; 100 %% heißt alle Kerne ausgelastet. Aktuell etwa %@ Kerne. In der Tabelle zählt ein Kern als 100 %%. Die Kurve zeigt die letzten 3 Minuten.",
+  "es": "Proporción de todos los núcleos; 100 %% es todos ocupados. Ahora equivale a unos %@ núcleos. En la tabla, un núcleo cuenta como 100 %%. La línea cubre los últimos 3 minutos.",
+  "fr": "Part de tous les cœurs ; 100 %% signifie tous les cœurs occupés. Actuellement l’équivalent d’environ %@ cœurs. Dans le tableau, un cœur compte pour 100 %%. La courbe couvre les 3 dernières minutes.",
+  "ja": "全コアに対する割合で、100%% はすべてのコアが使用中です。現在は約 %@ コア分です。表の CPU 列は 1 コアを 100%% として数えます。グラフは直近 3 分間です。",
+  "ko": "전체 코어 기준이며 100%%는 모든 코어가 사용 중임을 뜻합니다. 현재 약 %@개 코어 분량입니다. 표의 CPU 열은 코어 하나를 100%%로 계산합니다. 그래프는 최근 3분입니다.",
+  "zh-Hant": "所有核心合計，100%% 代表全部核心滿載，目前約等於 %@ 個核心滿載。表格中的 CPU 以單核計算，100%% 為一個核心。曲線為近 3 分鐘。"
+ },
+ "Show All": {
+  "de": "Alle einblenden",
+  "es": "Mostrar todo",
+  "fr": "Tout afficher",
+  "ja": "すべてを表示",
+  "ko": "모두 보기",
+  "zh-Hant": "顯示全部"
+ },
+ "Show Live Power": {
+  "de": "Live-Leistung zeigen",
+  "es": "Mostrar potencia",
+  "fr": "Afficher la puissance",
+  "ja": "リアルタイム電力を表示",
+  "ko": "실시간 전력 표시",
+  "zh-Hant": "顯示即時功率"
+ },
+ "Show Live Power in Menu Bar": {
+  "de": "Live-Leistung in Menüleiste zeigen",
+  "es": "Mostrar potencia en la barra de menús",
+  "fr": "Afficher la puissance dans la barre des menus",
+  "ja": "メニューバーにリアルタイム電力を表示",
+  "ko": "메뉴 막대에 실시간 전력 표시",
+  "zh-Hant": "在選單列顯示即時功率"
+ },
+ "Shows charger input or battery discharge in watts next to the battery icon.": {
+  "de": "Zeigt Netzteileingang oder Batterieentladung in Watt neben dem Batteriesymbol.",
+  "es": "Muestra la entrada del cargador o la descarga de la batería en vatios junto al icono de batería.",
+  "fr": "Affiche l’entrée du chargeur ou la décharge de la batterie en watts à côté de l’icône de batterie.",
+  "ja": "バッテリーアイコンの横に充電器の入力またはバッテリーの放電をワット数で表示します。",
+  "ko": "배터리 아이콘 옆에 충전기 입력 또는 배터리 방전을 와트로 표시합니다.",
+  "zh-Hant": "在電池圖像旁以瓦數顯示充電器輸入或電池放電。"
+ },
+ "Solid: app and wired memory; light: compressed. Swap turns orange past a quarter of memory, and idle apps worth quitting are listed below.": {
+  "de": "Voll: App- und gesicherter Speicher; hell: komprimiert. Swap wird über einem Viertel des Speichers orange, inaktive Apps zum Beenden stehen darunter.",
+  "es": "Sólido: memoria de apps y residente; claro: comprimida. El intercambio se vuelve naranja al superar un cuarto de la memoria, y abajo se listan las apps inactivas que conviene cerrar.",
+  "fr": "Plein : mémoire des apps et câblée ; clair : compressée. Le swap passe à l’orange au-delà d’un quart de la mémoire, et les apps inactives à quitter sont listées ci-dessous.",
+  "ja": "濃い色はアプリメモリと確保されているメモリ、薄い色は圧縮メモリです。スワップがメモリの 4 分の 1 を超えるとオレンジになり、終了してよい待機中のアプリが下に表示されます。",
+  "ko": "진한 색은 앱 및 와이어드 메모리, 옅은 색은 압축된 메모리입니다. 스왑이 메모리의 4분의 1을 넘으면 주황색으로 바뀌며, 종료할 만한 유휴 앱이 아래에 표시됩니다.",
+  "zh-Hant": "實色是 App 與固定記憶體，淺色是已壓縮記憶體。置換超過記憶體四分之一時顯示橘色，下方會列出可結束的閒置 App。"
+ },
+ "Status": {
+  "de": "Status",
+  "es": "Estado",
+  "fr": "État",
+  "ja": "状態",
+  "ko": "상태",
+  "zh-Hant": "狀態"
+ },
+ "Supported Levels": {
+  "de": "Unterstützte Stufen",
+  "es": "Niveles compatibles",
+  "fr": "Niveaux pris en charge",
+  "ja": "対応レベル",
+  "ko": "지원 레벨",
+  "zh-Hant": "支援檔位"
+ },
+ "Swap": {
+  "de": "Swap",
+  "es": "Intercambio",
+  "fr": "Swap",
+  "ja": "スワップ",
+  "ko": "스왑",
+  "zh-Hant": "置換"
+ },
+ "Swap %@": {
+  "de": "Swap %@",
+  "es": "Intercambio %@",
+  "fr": "Swap %@",
+  "ja": "スワップ %@",
+  "ko": "스왑 %@",
+  "zh-Hant": "置換 %@"
+ },
+ "System": {
+  "de": "System",
+  "es": "Sistema",
+  "fr": "Système",
+  "ja": "システム",
+  "ko": "시스템",
+  "zh-Hant": "跟隨系統"
+ },
+ "Temperature": {
+  "de": "Temperatur",
+  "es": "Temperatura",
+  "fr": "Température",
+  "ja": "温度",
+  "ko": "온도",
+  "zh-Hant": "溫度"
+ },
+ "This app isn't responding, so Quit may not work. Force Quit closes it at once and loses unsaved changes.": {
+  "de": "Diese App reagiert nicht, „Beenden“ funktioniert daher evtl. nicht. „Sofort beenden“ schließt sie sofort, nicht gesicherte Änderungen gehen verloren.",
+  "es": "Esta app no responde, así que “Salir” puede no funcionar. “Forzar salida” la cierra al instante y se pierden los cambios no guardados.",
+  "fr": "Cette app ne répond pas, « Quitter » risque de ne pas fonctionner. « Forcer à quitter » la ferme immédiatement et perd les modifications non enregistrées.",
+  "ja": "このアプリは応答していないため、「終了」が効かない場合があります。「強制終了」はすぐに閉じ、保存されていない変更は失われます。",
+  "ko": "이 앱이 응답하지 않아 종료가 작동하지 않을 수 있습니다. 강제 종료하면 즉시 닫히며 저장되지 않은 변경 사항이 사라집니다.",
+  "zh-Hant": "此 App 沒有回應，「結束」可能無效。「強制結束」會立即關閉，未儲存的變更將會遺失。"
+ },
+ "Threads running or waiting, averaged over 1 minute. Staying above the core count means the CPU is saturated.": {
+  "de": "Laufende oder wartende Threads, gemittelt über 1 Minute. Liegt der Wert dauerhaft über der Kernzahl, ist die CPU ausgelastet.",
+  "es": "Hilos en ejecución o en espera, de media en 1 minuto. Si se mantiene por encima del número de núcleos, la CPU está saturada.",
+  "fr": "Threads en cours ou en attente, en moyenne sur 1 minute. Rester au-dessus du nombre de cœurs signifie que le CPU est saturé.",
+  "ja": "実行中または待機中のスレッド数の 1 分間平均です。コア数を超え続ける場合は CPU が飽和しています。",
+  "ko": "실행 중이거나 대기 중인 스레드 수의 1분 평균입니다. 코어 수보다 계속 높으면 CPU가 포화 상태입니다.",
+  "zh-Hant": "近 1 分鐘平均有多少執行緒正在執行或等待。長時間高於核心數表示 CPU 不夠用。"
+ },
+ "Time Range": {
+  "de": "Zeitraum",
+  "es": "Intervalo",
+  "fr": "Période",
+  "ja": "期間",
+  "ko": "기간",
+  "zh-Hant": "時間範圍"
+ },
+ "Today": {
+  "de": "Heute",
+  "es": "Hoy",
+  "fr": "Aujourd’hui",
+  "ja": "今日",
+  "ko": "오늘",
+  "zh-Hant": "今天"
+ },
+ "Toggle Sidebar": {
+  "de": "Seitenleiste ein-/ausblenden",
+  "es": "Mostrar/ocultar barra lateral",
+  "fr": "Afficher/masquer la barre latérale",
+  "ja": "サイドバーの表示/非表示を切り替える",
+  "ko": "사이드바 토글",
+  "zh-Hant": "顯示或隱藏側邊欄"
+ },
+ "Used": {
+  "de": "Belegt",
+  "es": "Usada",
+  "fr": "Utilisée",
+  "ja": "使用済み",
+  "ko": "사용됨",
+  "zh-Hant": "已使用"
+ },
+ "Used by Mac": {
+  "de": "Verbrauch des Mac",
+  "es": "Consumo del Mac",
+  "fr": "Consommation du Mac",
+  "ja": "Mac の使用量",
+  "ko": "Mac 사용량",
+  "zh-Hant": "Mac 用電量"
+ },
+ "User %.0f%%, system %.0f%%": {
+  "de": "Benutzer %.0f %%, System %.0f %%",
+  "es": "Usuario %.0f %%, sistema %.0f %%",
+  "fr": "Utilisateur %.0f %%, système %.0f %%",
+  "ja": "ユーザ %.0f%%、システム %.0f%%",
+  "ko": "사용자 %.0f%%, 시스템 %.0f%%",
+  "zh-Hant": "使用者 %.0f%%，系統 %.0f%%"
+ },
+ "Using Significant Energy": {
+  "de": "Hoher Energieverbrauch",
+  "es": "Consume mucha energía",
+  "fr": "Consomme beaucoup d’énergie",
+  "ja": "エネルギーを大量に使用中",
+  "ko": "에너지를 많이 사용 중",
+  "zh-Hant": "正在大量耗電"
+ },
+ "Utilization": {
+  "de": "Auslastung",
+  "es": "Uso",
+  "fr": "Utilisation",
+  "ja": "使用率",
+  "ko": "사용률",
+  "zh-Hant": "利用率"
+ },
+ "View": {
+  "de": "Darstellung",
+  "es": "Visualización",
+  "fr": "Présentation",
+  "ja": "表示",
+  "ko": "보기",
+  "zh-Hant": "顯示方式"
+ },
+ "Voltage & Current": {
+  "de": "Spannung & Strom",
+  "es": "Voltaje y corriente",
+  "fr": "Tension et courant",
+  "ja": "電圧と電流",
+  "ko": "전압 및 전류",
+  "zh-Hant": "電壓與電流"
+ },
+ "Window": {
+  "de": "Fenster",
+  "es": "Ventana",
+  "fr": "Fenêtre",
+  "ja": "ウインドウ",
+  "ko": "윈도우",
+  "zh-Hant": "視窗"
+ },
+ "Yellow or red means memory is short and macOS is compressing and swapping, which slows things down.": {
+  "de": "Gelb oder Rot heißt: Der Speicher ist knapp, macOS komprimiert und lagert aus, was bremst.",
+  "es": "Amarillo o rojo indica poca memoria: macOS comprime e intercambia, lo que ralentiza el Mac.",
+  "fr": "Jaune ou rouge : la mémoire manque, macOS compresse et utilise le swap, ce qui ralentit le Mac.",
+  "ja": "黄色または赤はメモリ不足で、macOS が圧縮とスワップを行っているため動作が遅くなります。",
+  "ko": "노란색 또는 빨간색은 메모리가 부족하여 macOS가 압축 및 스왑 중이라는 뜻이며, 속도가 느려집니다.",
+  "zh-Hant": "黃色或紅色表示記憶體不足，系統正在壓縮與置換，速度會變慢。"
+ },
+ "You have %@.": {
+  "de": "Du hast %@.",
+  "es": "Tienes la %@.",
+  "fr": "Vous avez la %@.",
+  "ja": "現在のバージョンは %@ です。",
+  "ko": "현재 버전은 %@입니다.",
+  "zh-Hant": "你目前使用 %@。"
+ },
+ "You have %@. Download it and replace Rill in Applications.": {
+  "de": "Du hast %@. Lade es und ersetze Rill im Ordner „Programme“.",
+  "es": "Tienes la %@. Descárgala y sustituye Rill en Aplicaciones.",
+  "fr": "Vous avez la %@. Téléchargez-la et remplacez Rill dans Applications.",
+  "ja": "現在のバージョンは %@ です。ダウンロードして「アプリケーション」内の Rill を置き換えてください。",
+  "ko": "현재 버전은 %@입니다. 다운로드한 후 응용 프로그램 폴더의 Rill을 대치하십시오.",
+  "zh-Hant": "你目前使用 %@。下載後取代「應用程式」中的 Rill 即可。"
+ },
+ "Zoom": {
+  "de": "Zoomen",
+  "es": "Zoom",
+  "fr": "Réduire/agrandir",
+  "ja": "拡大/縮小",
+  "ko": "확대/축소",
+  "zh-Hant": "縮放"
+ },
+ "idle %@": {
+  "de": "seit %@ inaktiv",
+  "es": "inactiva hace %@",
+  "fr": "inactive depuis %@",
+  "ja": "%@未使用",
+  "ko": "%@ 동안 유휴",
+  "zh-Hant": "%@未使用"
+ },
+ "macOS Services": {
+  "de": "macOS-Dienste",
+  "es": "Servicios de macOS",
+  "fr": "Services macOS",
+  "ja": "macOS サービス",
+  "ko": "macOS 서비스",
+  "zh-Hant": "macOS 系統服務"
+ },
+ "of %1$@, %2$@ compressed": {
+  "de": "von %1$@, %2$@ komprimiert",
+  "es": "de %1$@, %2$@ comprimida",
+  "fr": "sur %1$@, %2$@ compressée",
+  "ja": "/ %1$@、圧縮 %2$@",
+  "ko": "/ %1$@, 압축 %2$@",
+  "zh-Hant": "共 %1$@，壓縮 %2$@"
+ }
+}

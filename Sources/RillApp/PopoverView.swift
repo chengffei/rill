@@ -70,10 +70,10 @@ struct PopoverView: View {
                 .foregroundStyle(Palette.secondary)
             Spacer()
             if let m = s.minutesToFull {
-                Text(L("\(durationText(m))充满", "Full in \(durationText(m))"))
+                Text(L("%@充满", "Full in %@", "\(durationText(m))"))
                     .font(.system(size: 12)).foregroundStyle(Palette.caption)
             } else if let m = s.minutesToEmpty {
-                Text(L("剩余 \(durationText(m))", "\(durationText(m)) left"))
+                Text(L("剩余 %@", "%@ left", "\(durationText(m))"))
                     .font(.system(size: 12)).foregroundStyle(Palette.caption)
             }
         }
@@ -115,7 +115,7 @@ struct PopoverView: View {
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.text)
                 Spacer()
                 if let avg = model.history.averageSystemWatts, let peak = model.history.peakSystemWatts {
-                    Text(L("电脑平均 \(PowerFormat.watts(avg))，峰值 \(PowerFormat.watts(peak))", "Mac average \(PowerFormat.watts(avg)), peak \(PowerFormat.watts(peak))"))
+                    Text(L("电脑平均 %1$@，峰值 %2$@", "Mac average %1$@, peak %2$@", "\(PowerFormat.watts(avg))", "\(PowerFormat.watts(peak))"))
                         .font(.system(size: 11).monospacedDigit()).foregroundStyle(Palette.caption)
                 }
             }
@@ -154,7 +154,7 @@ struct PopoverView: View {
     private func details(_ s: PowerSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if s.externalConnected {
-                row(L("充电器", "Charger"), s.adapterName ?? s.adapterRatedWatts.map { L("\($0) W 充电器", "\($0) W charger") } ?? L("已连接", "Connected"))
+                row(L("充电器", "Charger"), s.adapterName ?? s.adapterRatedWatts.map { L("%@ W 充电器", "%@ W charger", "\($0)") } ?? L("已连接", "Connected"))
                 if let v = s.inputVolts, let a = s.inputAmps {
                     row(L("输入", "Input"), String(format: "%.2f V × %.2f A", v, a) + L("，损耗 ", ", loss ") + PowerFormat.watts(s.lossWatts))
                 }
@@ -163,7 +163,7 @@ struct PopoverView: View {
                 + (s.temperature.map { String(format: L("，%.1f °C", ", %.1f °C"), $0) } ?? ""))
             if let h = s.health {
                 row(L("健康度", "Health"), String(format: "%.0f%%", h * 100)
-                    + (s.cycleCount.map { L("，循环 \($0) 次", ", \($0) cycles") } ?? ""))
+                    + (s.cycleCount.map { L("，循环 %@ 次", ", %@ cycles", "\($0)") } ?? ""))
             }
         }
     }

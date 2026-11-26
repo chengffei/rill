@@ -64,7 +64,7 @@ enum AppActions {
         guard canQuit(app) else { return }
         let name = AppIdentity.info(for: app).name
         let running = NSRunningApplication(processIdentifier: app.responsiblePID)
-        ask(L("要退出「\(name)」吗？", "Are you sure you want to quit “\(name)”?"),
+        ask(L("要退出「%@」吗？", "Are you sure you want to quit “%@”?", "\(name)"),
             app.unresponsive ? L("这个应用没有响应，「退出」可能无效，可以选「强制退出」，未存储的更改会丢失。",
                                  "This app isn't responding, so Quit may not work. Force Quit closes it at once and loses unsaved changes.")
                              : L("「强制退出」会立即关闭应用，未存储的更改会丢失。", "Force Quit closes the app at once and loses unsaved changes."),
@@ -78,7 +78,7 @@ enum AppActions {
     }
 
     static func endProcess(pid: pid_t, name: String) {
-        ask(L("要结束进程「\(name)」吗？", "Are you sure you want to end “\(name)”?"),
+        ask(L("要结束进程「%@」吗？", "Are you sure you want to end “%@”?", "\(name)"),
             L("「结束」请进程自行退出；「强制结束」立即终止，未存储的内容会丢失。",
               "End asks the process to exit; Force End stops it at once and loses unsaved work."),
             primary: L("结束", "End"), force: L("强制结束", "Force End")) { force in
@@ -105,12 +105,12 @@ enum AppActions {
         menu.addItem(.separator())
 
         if canQuit(app) {
-            menu.addItem(action(L("退出 \(info.name)…", "Quit \(info.name)…")) { confirmQuit(app) })
+            menu.addItem(action(L("退出 %@…", "Quit %@…", "\(info.name)")) { confirmQuit(app) })
         } else {
             menu.addItem(disabled(L("系统组件或 Rill 自身，不提供退出", "Part of macOS or Rill itself, can't be quit here")))
         }
         if let top = busiestOtherProcess(app) {
-            menu.addItem(action(L("结束「\(top.name)」…", "End “\(top.name)”…")) { endProcess(pid: top.pid, name: top.name) })
+            menu.addItem(action(L("结束「%@」…", "End “%@”…", "\(top.name)")) { endProcess(pid: top.pid, name: top.name) })
         }
         menu.addItem(.separator())
         menu.addItem(action(L("打开活动监视器", "Open Activity Monitor")) { openActivityMonitor() })
@@ -138,7 +138,7 @@ enum AppActions {
     private static func signal(_ sig: Int32, pid: pid_t, name: String) {
         guard kill(pid, sig) != 0 else { return }
         let alert = NSAlert()
-        alert.messageText = L("没能结束「\(name)」", "Couldn't end “\(name)”")
+        alert.messageText = L("没能结束「%@」", "Couldn't end “%@”", "\(name)")
         alert.informativeText = String(cString: strerror(errno))
         alert.runModal()
     }

@@ -359,6 +359,9 @@ extension AppDelegate: NSWindowDelegate {
     /// gets no updates (its charts are the most expensive views to refresh).
     func windowDidChangeOcclusionState(_ notification: Notification) {
         guard let w = notification.object as? NSWindow, w === dashboard else { return }
+        // RILL_IGNORE_OCCLUSION=1 keeps a covered window updating, for screenshots
+        // taken with screencapture -l while other windows are in front.
+        if ProcessInfo.processInfo.environment["RILL_IGNORE_OCCLUSION"] != nil, w.isVisible { return }
         model.dashboardVisible = w.isVisible && w.occlusionState.contains(.visible)
     }
 }

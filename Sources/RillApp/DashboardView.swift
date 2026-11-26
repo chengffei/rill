@@ -101,9 +101,9 @@ private struct OverviewPage: View {
                         Text(stateText(s))
                             .foregroundStyle(.secondary)
                         if let m = s.minutesToFull {
-                            Text(L("\(durationText(m))充满", "Full in \(durationText(m))")).font(.callout).foregroundStyle(.secondary)
+                            Text(L("%@充满", "Full in %@", "\(durationText(m))")).font(.callout).foregroundStyle(.secondary)
                         } else if let m = s.minutesToEmpty {
-                            Text(L("剩余 \(durationText(m))", "\(durationText(m)) left")).font(.callout).foregroundStyle(.secondary)
+                            Text(L("剩余 %@", "%@ left", "\(durationText(m))")).font(.callout).foregroundStyle(.secondary)
                         }
                     }
                     .frame(width: 150, alignment: .leading)
@@ -157,8 +157,7 @@ private struct MemorySection: View {
                     Text(load.pressure.name).foregroundStyle(load.pressure.tint)
                 }
                 LabeledContent(L("已使用", "Used")) {
-                    Text(L("\(Format.bytes(load.memoryUsed)) / \(Format.bytes(load.memoryTotal))，压缩 \(Format.bytes(load.memoryCompressed))",
-                           "\(Format.bytes(load.memoryUsed)) of \(Format.bytes(load.memoryTotal)), \(Format.bytes(load.memoryCompressed)) compressed"))
+                    Text(L("%1$@ / %2$@，压缩 %3$@", "%1$@ of %2$@, %3$@ compressed", "\(Format.bytes(load.memoryUsed))", "\(Format.bytes(load.memoryTotal))", "\(Format.bytes(load.memoryCompressed))"))
                         .monospacedDigit()
                 }
                 LabeledContent(L("交换", "Swap")) {
@@ -194,7 +193,7 @@ private struct IdleMemoryAppRow: View {
         LabeledContent {
             HStack(spacing: 10) {
                 Text(Format.bytes(app.memoryBytes)).monospacedDigit()
-                Text(L("\(IdleFormat.since(idle.lastActive))未用", "idle \(IdleFormat.since(idle.lastActive))"))
+                Text(L("%@未用", "idle %@", "\(IdleFormat.since(idle.lastActive))"))
                     .foregroundStyle(.secondary).monospacedDigit()
                 Button(L("退出…", "Quit…")) { AppActions.confirmQuit(app) }
                     .controlSize(.small)
@@ -418,7 +417,7 @@ private struct EnergySection: View {
                 Text(L("还没有记录", "No history yet")).foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(hit.map { slotLabel($0.start) } ?? L("\(range.label)合计", "Last \(range.label)"))
+                    Text(hit.map { slotLabel($0.start) } ?? L("%@合计", "Last %@", "\(range.label)"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Text(EnergyStats.format(wh: (hit?.stats ?? total).systemWh))
