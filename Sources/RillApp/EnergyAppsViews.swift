@@ -1,6 +1,74 @@
 import RillCore
 import SwiftUI
 
+/// The panel's activity card: memory, apps using significant energy and,
+/// when memory is short, idle apps holding a lot of it. One card instead of
+/// three keeps the panel short enough to show memory at all (2026-11-26).
+struct ActivityCard: View {
+    let model: PowerModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let load = model.systemLoad {
+                MemoryRow(load: load)
+                Divider()
+            }
+            HeavyAppsRow(apps: model.heavyApps)
+            if model.memoryTight, !model.idleMemoryApps.isEmpty {
+                Divider()
+                IdleMemoryRow(apps: model.idleMemoryApps)
+            }
+        }
+        .padding(14)
+    }
+}
+
+/// Memory used against the total as one bar (compressed part lighter),
+/// pressure on the right, compressed and swap below.
+struct MemoryRow: View {
+    let load: SystemLoad
+
+    var body: some View {
+        let total = max(Double(load.memoryTotal), 1)
+        let solid = Double(load.memoryApp + load.memoryWired) / total
+        let compressed = Double(load.memoryCompressed) / total
+        let tint = load.pressure == .normal ? Palette.system : load.pressure.tint
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(L("内存", "Memory"))
+                    .font(.system(size: 13, weight: .semibold))
+                Text("\(Format.bytes(load.memoryUsed)) / \(Format.bytes(load.memoryTotal))")
+                    .font(.system(size: 12).monospacedDigit())
+                    .foregroundStyle(Color.secondary)
+                Spacer()
+                Text(L("压力", "Pressure") + L("", " ") + load.pressure.name)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(load.pressure.tint)
+            }
+            GeometryReader { g in
+                HStack(spacing: 0) {
+                    Rectangle().fill(tint).frame(width: g.size.width * min(solid, 1))
+                    Rectangle().fill(tint.opacity(0.4)).frame(width: g.size.width * min(compressed, max(0, 1 - solid)))
+                    Spacer(minLength: 0)
+                }
+                .background(Color.primary.opacity(0.08))
+                .clipShape(Capsule())
+            }
+            .frame(height: 6)
+            HStack(spacing: 0) {
+                Text(L("压缩 \(Format.bytes(load.memoryCompressed))，交换 ", "\(Format.bytes(load.memoryCompressed)) compressed, swap "))
+                    .foregroundStyle(Color.secondary)
+                // Swap alone can make memory count as short; say so in colour.
+                Text(Format.bytes(load.swapUsed))
+                    .foregroundStyle(load.memoryTight && load.pressure == .normal ? Color.orange : Color.secondary)
+            }
+            .font(.system(size: 11).monospacedDigit())
+        }
+        .help(L("条的实色是应用与联动内存，浅色是被压缩的内存。交换超过内存的四分之一时标橙，下方会列出可退出的闲置应用。",
+                "Solid: app and wired memory; light: compressed. Swap turns orange past a quarter of memory, and idle apps worth quitting are listed below."))
+    }
+}
+
 /// "Using significant energy": apps averaging at least 1 W of CPU energy over
 /// about 20 s, with their icons. Mirrors the line in macOS's battery menu.
 struct HeavyAppsRow: View {
@@ -9,10 +77,12 @@ struct HeavyAppsRow: View {
     var body: some View {
         HStack(spacing: 10) {
             if apps.isEmpty {
+                Text(L("耗电", "Energy"))
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
                 Text(L("没有应用在大量耗电", "No apps using significant energy"))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.secondary)
-                    .frame(maxWidth: .infinity)
             } else {
                 Text(apps.contains(where: \.unresponsive) ? L("有应用未响应", "App Not Responding") : L("正在大量耗电", "Using Significant Energy"))
                     .font(.system(size: 13, weight: .semibold))
@@ -48,9 +118,6 @@ struct HeavyAppsRow: View {
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(minHeight: 48)
     }
 }
 
@@ -397,15 +464,10 @@ struct IdleMemoryRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(L("内存紧张", "Memory Is Short"))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.primary)
-                Text(L("这些应用闲置中", "These apps sit idle"))
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(Color.secondary)
-            }
-            .fixedSize()
+            Text(L("闲置", "Idle"))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.primary)
+                .fixedSize()
             Spacer(minLength: 8)
             ForEach(apps.prefix(3)) { idle in
                 let app = idle.usage
@@ -433,10 +495,8 @@ struct IdleMemoryRow: View {
                 Text("+\(apps.count - 3)")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.secondary)
+                    .fixedSize()
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(minHeight: 48)
     }
 }

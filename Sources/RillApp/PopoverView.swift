@@ -27,12 +27,8 @@ struct PopoverView: View {
                 header(s)
                 FlowView(snapshot: s)
                     .glassCard()
-                HeavyAppsRow(apps: model.heavyApps)
+                ActivityCard(model: model)
                     .glassCard()
-                if model.memoryTight, !model.idleMemoryApps.isEmpty {
-                    IdleMemoryRow(apps: model.idleMemoryApps)
-                        .glassCard()
-                }
                 chart
                 details(s)
                     .padding(14)
@@ -145,7 +141,7 @@ struct PopoverView: View {
                 }
             }
             .chartLegend(position: .bottom, spacing: 6)
-            .frame(height: 120)
+            .frame(height: 100)
         }
         .padding(14)
         .glassCard()
@@ -153,26 +149,22 @@ struct PopoverView: View {
 
     // MARK: Details
 
+    /// Four lines; negotiated levels and capacity in mAh live on the
+    /// Dashboard's Battery & Charger page, so the panel has room for memory.
     private func details(_ s: PowerSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if s.externalConnected {
                 row(L("充电器", "Charger"), s.adapterName ?? s.adapterRatedWatts.map { L("\($0) W 充电器", "\($0) W charger") } ?? L("已连接", "Connected"))
-                if let v = s.adapterNegotiatedVolts, let a = s.adapterNegotiatedAmps {
-                    let rated = s.adapterRatedWatts.map { L("，\($0) W", ", \($0) W") } ?? ""
-                    row(L("协商", "Negotiated"), String(format: "%.1f V × %.2f A", v, a) + rated)
-                }
                 if let v = s.inputVolts, let a = s.inputAmps {
-                    row(L("实际输入", "Actual Input"), String(format: "%.2f V × %.2f A", v, a))
+                    row(L("输入", "Input"), String(format: "%.2f V × %.2f A", v, a) + L("，损耗 ", ", loss ") + PowerFormat.watts(s.lossWatts))
                 }
-                row(L("转换损耗", "Conversion Loss"), PowerFormat.watts(s.lossWatts))
-                Divider().padding(.vertical, 2)
             }
-            row(L("电池", "Battery"), String(format: "%.2f V × %.2f A", s.batteryVolts, s.batteryAmps))
-            if let h = s.health, let full = s.fullChargeCapacity, let design = s.designCapacity {
-                row(L("健康度", "Health"), String(format: "%.0f%%", h * 100) + L("（\(full) / \(design) mAh）", " (\(full) / \(design) mAh)"))
+            row(L("电池", "Battery"), String(format: "%.2f V × %.2f A", s.batteryVolts, s.batteryAmps)
+                + (s.temperature.map { String(format: L("，%.1f °C", ", %.1f °C"), $0) } ?? ""))
+            if let h = s.health {
+                row(L("健康度", "Health"), String(format: "%.0f%%", h * 100)
+                    + (s.cycleCount.map { L("，循环 \($0) 次", ", \($0) cycles") } ?? ""))
             }
-            if let t = s.temperature { row(L("电池温度", "Battery Temperature"), String(format: "%.1f °C", t)) }
-            if let c = s.cycleCount { row(L("循环次数", "Cycle Count"), "\(c)") }
         }
     }
 

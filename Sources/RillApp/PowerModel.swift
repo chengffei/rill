@@ -239,8 +239,9 @@ final class PowerModel {
         if idle != idleMemoryApps { idleMemoryApps = idle }
         let tight = latestLoad?.memoryTight ?? false
         if tight != memoryTight { memoryTight = tight }
+        // The panel shows memory too, so the load goes out whenever anything is visible.
+        if latestLoad != systemLoad { systemLoad = latestLoad }
         if dashboardVisible {
-            if latestLoad != systemLoad { systemLoad = latestLoad }
             if latestCPUHistory != cpuHistory { cpuHistory = latestCPUHistory }
             let everything = stuck + all.filter { !stuckKeys.contains($0.key) }
             if everything != allApps { allApps = everything }
